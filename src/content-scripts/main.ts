@@ -66,6 +66,7 @@ async function init() {
     links_title: "Ссылки",
     // ---
     folders_title: "Папки",
+    folders_no_folders: "Тут пока ничего нету. <br /> Добавляйте хотелки, нажимая на кнопку <b>Save</b> с правой стороны экрана когда находитесь на странице товара.",
     // ---
     unknown_route_title: "Неизвестный сайт",
     unknown_route_message: "Предложите нам подключить хост к нашей системе, нажав кнопку",
@@ -74,7 +75,7 @@ async function init() {
     404: "Неизвестная страница",
   };
 
-  vm.setLocalization!(localization);
+  // vm.setLocalization!(localization);
 }
 
 function changeDialogRoute(newRoute: string) {
@@ -121,13 +122,13 @@ async function onCreateItem() {
     },
   };
 
-  const response = await chrome.runtime.sendMessage({ action: "make_request", payload: addItemPayload });
+  await chrome.runtime.sendMessage({ action: "make_request", payload: addItemPayload });
 }
-
-chrome.runtime.onMessage.addListener((message) => {});
 
 chrome.storage.onChanged.addListener((data) => {
   if (data.folders) {
     vm.setFolders!(data.folders.newValue);
   }
 });
+
+// chrome.runtime.onMessage.addListener((message) => {});

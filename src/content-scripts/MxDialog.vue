@@ -5,7 +5,7 @@
     </div>
     <!-- header -->
     <div id="mx-header" style="display: flex; align-items: center; justify-content: space-between">
-      <span :class="$style['title']">{{ localization["app_title"] ?? "Мои хотелки" }}</span>
+      <span :class="$style['title']">{{ localization["app_title"] ?? "Mx" }}</span>
       <div :class="$style['dialog-btns']">
         <div>
           <svg width="13" height="13" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -97,15 +97,15 @@
 
       <!-- confirm email -->
       <template v-else-if="currentRoute === 'confirm-email'">
-        <div :class="$style['subtitle']">{{ localization["confirm_email_title"] ?? "Подтверждение email" }}</div>
+        <div :class="$style['subtitle']">{{ localization["confirm_email_title"] ?? "Confirm E-mail" }}</div>
         <div style="flex: 1; display: flex; flex-direction: column; gap: 0.5rem">
-          <span v-html="localization['confirm_email_message'] ?? 'На вашу почту отправлено письмо с кодом'" />
+          <span v-html="localization['confirm_email_message'] ?? 'We\'ve sent a message with a one-time code to your mailbox'" />
           <label style="font-size: 14px; color: grey">
-            {{ localization["confirm_email_label"] ?? "Введите код:" }}
+            {{ localization["confirm_email_label"] ?? "Enter the code here:" }}
             <input v-model="settings.emailCode" type="text" :class="$style['input']" />
           </label>
           <div style="flex: 1"></div>
-          <button :class="$style['success-button']" @click="onEmailConfirmed">{{ localization["confirm_email_button"] ?? "Подтвердить email" }}</button>
+          <button :class="$style['success-button']" @click="onEmailConfirmed">{{ localization["confirm_email_button"] ?? "Confirm E-mail" }}</button>
         </div>
       </template>
 
@@ -166,9 +166,7 @@
         <template v-else>
           <div :class="$style['no-folders']">
             <div style="display: flex; flex-direction: column; gap: 0.5rem">
-              <b>Тут пока ничего нету. </b>
-              <span>Добавляйте хотелки, нажимая на кнопку <b>Save</b> с правой стороны экрана когда находитесь на странице товара.</span>
-              <span>Можете выделить цену и затем нажать на кнопку <b>Save</b>, если хотите следить за изменениями цены.</span>
+              <span v-html="localization['folders_no_folders'] ?? 'Nothing here yet <br /> Add items by pressing the Mx button on supported services'" />
             </div>
           </div>
         </template>

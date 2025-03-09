@@ -16,4 +16,11 @@ export default defineConfig({
     },
   },
   plugins: [vue(), chromeExtension()],
+  css: {
+    preprocessorOptions: {
+      scss: {
+        api: "modern-compiler",
+      },
+    },
+  },
 });

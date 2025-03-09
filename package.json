@@ -7,11 +7,11 @@
     "serve": "vite preview"
   },
   "dependencies": {
-    "@types/node": "^22.13.10",
     "vue": "^3.0.5"
   },
   "devDependencies": {
     "@types/chrome": "^0.0.307",
+    "@types/node": "^22.13.10",
     "@vitejs/plugin-vue": "^1.2.1",
     "@vue/compiler-sfc": "^3.0.5",
     "prettier": "^3.5.2",

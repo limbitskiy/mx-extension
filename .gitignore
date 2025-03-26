@@ -1,6 +1,9 @@
 .thumbs.db
 node_modules
 dist
+.output
+.vscode
+.wxt
 
 # Log files
 npm-debug.log*

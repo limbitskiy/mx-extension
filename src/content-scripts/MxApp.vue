@@ -1,21 +1,23 @@
 <template>
   <div class="mx-cnt" :class="$style['mx-cnt']">
-    <transition name="dialog-slide">
-      <!-- popup -->
-      <MxDialog
-        v-show="dialogVisible"
-        ref="dialogRef"
-        :theme="theme"
-        :folders="folders"
-        :localization="localization"
-        @addItem="addItem"
-        @deleteItem="deleteItem"
-        @moveItem="moveItem"
-        @deleteFolder="deleteFolder"
-        @close="onCloseDialog"
-        @save-settings="onSaveSettings"
-      />
-    </transition>
+    <Teleport to="body">
+      <transition name="dialog-slide">
+        <!-- popup -->
+        <MxDialog
+          v-show="dialogVisible"
+          ref="dialogRef"
+          :theme="theme"
+          :folders="folders"
+          :localization="localization"
+          @addItem="addItem"
+          @deleteItem="deleteItem"
+          @moveItem="moveItem"
+          @deleteFolder="deleteFolder"
+          @close="onCloseDialog"
+          @save-settings="onSaveSettings"
+        />
+      </transition>
+    </Teleport>
 
     <!-- button -->
     <div :class="$style['mx-button-cnt']">
@@ -29,7 +31,7 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, ref, useTemplateRef } from "vue";
+import { onMounted, ref, shallowRef, useTemplateRef } from "vue";
 import MxDialog from "./MxDialog.vue";
 import AnimatedTick from "./ui/AnimatedTick.vue";
 
@@ -47,10 +49,9 @@ const props = defineProps<{
   folders: Folder[];
 }>();
 
-const folders = ref<Folder[]>([]);
-
-const localization = ref<{ [key: string]: string }>({});
-const theme = ref({
+const folders = shallowRef<Folder[]>([]);
+const localization = shallowRef<{ [key: string]: string }>({});
+const theme = shallowRef({
   colors: {
     accent: "#19253D",
     accentHover: "#283a5d",
@@ -72,18 +73,10 @@ const theme = ref({
 });
 
 const dialogRef = useTemplateRef("dialogRef");
-const buttonOffset = ref("120%");
-// const buttonVisible = ref(false);
-const dialogVisible = ref(false);
-const isButtonCheckbox = ref(false);
 
-// const onBtnHover = () => {
-//   buttonVisible.value = true;
-// };
-
-// const onMouseLeaveBtn = () => {
-//   buttonVisible.value = false;
-// };
+const buttonOffset = shallowRef("120%");
+const dialogVisible = shallowRef(false);
+const isButtonCheckbox = shallowRef(false);
 
 const onToggleDialog = () => {
   dialogVisible.value = !dialogVisible.value;

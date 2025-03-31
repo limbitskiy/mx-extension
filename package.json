@@ -16,12 +16,14 @@
   },
   "dependencies": {
     "@vueuse/core": "^13.0.0",
+    "@webext-core/messaging": "^2.2.0",
     "axios": "^1.8.4",
     "vue": "^3.5.12"
   },
   "devDependencies": {
     "@types/chrome": "^0.0.280",
     "@wxt-dev/module-vue": "^1.0.1",
+    "sass-embedded": "^1.86.0",
     "typescript": "5.6.3",
     "vue-tsc": "^2.1.10",
     "wxt": "^0.19.29"

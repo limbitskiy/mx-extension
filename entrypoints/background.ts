@@ -1,6 +1,38 @@
 import { defineBackground } from "wxt/sandbox";
 import { browser } from "wxt/browser";
 import axios from "axios";
+// import { onMessage } from "./messaging";
+
+// check storage:
+// chrome.storage.local.get(null, (data) => console.log(data))
+interface Item {
+  discount: number;
+  id: string;
+  name: string;
+  price: number;
+  url: string;
+}
+
+interface Folder {
+  discount: number;
+  id: string;
+  items: Item[];
+  itemCnt: number;
+  name: string;
+  timer: string; // "16:25"
+}
+
+interface Task {
+  id: number;
+  period: number; // in seconds
+  url: string;
+  lastUpdated?: number;
+}
+
+interface ResponseData {
+  folders: Folder[];
+  tasks: Task[];
+}
 
 let tab;
 const UPDATE_CHECK_INTERVAL = 5000;
@@ -59,7 +91,6 @@ async function init() {
 
   if (!settings) {
     console.log(`first entry`);
-
     firstEntry();
   } else {
     console.log(`regular entry`);
@@ -81,29 +112,41 @@ async function firstEntry() {
 }
 
 async function makeRequest(requestBody: {}) {
-  try {
-    const response = await axios.post<{ service: {}; data: {} }>("https://api-dev.tapsmart.io/main", requestBody);
-
-    const { service, data } = response.data;
-
-    // const { service, data } = await response.json();
-
-    if (service) {
-      console.log(`setting service`);
-
-      await storage.setItem("local:service", service);
-    }
-
-    // if (data.folders) {
-    //   await chrome.storage.local.set({ folders: data.folders });
-    // }
-
-    // if (data.tasks) {
-    //   await chrome.storage.local.set({ tasks: data.tasks });
-    // }
-
-    return data;
-  } catch (error) {
-    console.error(error);
-  }
+  // try {
+  //   const response = await axios.post<{ service: object; data: ResponseData }>("https://api-dev.tapsmart.io/main", requestBody);
+  //   const { service, data } = response.data;
+  //   if (service) {
+  //     console.log(`setting service`);
+  //     await storage.setItem("local:service", service);
+  //   }
+  //   if (data.folders) {
+  //     await storage.setItem("local:folders", data.folders);
+  //   }
+  //   if (data.tasks) {
+  //     await storage.setItem("local:tasks", data.tasks);
+  //   }
+  //   return data;
+  // } catch (error) {
+  //   console.error(error);
+  // }
 }
+
+onMessage("makeRequest", (message) => {
+  console.log("🚀 ~ message:", message);
+});
+
+// browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
+//   console.log(`got message`);
+
+//   console.log(request);
+
+//   const { action, payload } = request;
+
+//   if (action === "make_request") {
+//     makeRequest(payload)
+//       .then((result) => sendResponse(result))
+//       .catch((error) => sendResponse({ error: error.message }));
+
+//     return true;
+//   }
+// });

@@ -1,51 +1,86 @@
 import { defineBackground } from "wxt/sandbox";
 import { browser } from "wxt/browser";
 import axios from "axios";
-// import { onMessage } from "./messaging";
 
 // check storage:
 // chrome.storage.local.get(null, (data) => console.log(data))
-interface Item {
-  discount: number;
-  id: string;
-  name: string;
-  price: number;
-  url: string;
-}
 
-interface Folder {
-  discount: number;
-  id: string;
-  items: Item[];
-  itemCnt: number;
-  name: string;
-  timer: string; // "16:25"
-}
-
-interface Task {
-  id: number;
-  period: number; // in seconds
-  url: string;
-  lastUpdated?: number;
-}
-
-interface ResponseData {
-  folders: Folder[];
-  tasks: Task[];
-}
-
-let tab;
-const UPDATE_CHECK_INTERVAL = 5000;
-
-export default defineBackground(() => {
-  console.log(browser);
+export default defineBackground(async () => {
+  const apiHost = "https://api-dev.tapsmart.io/main";
+  let tab;
+  const UPDATE_CHECK_INTERVAL = 5000;
 
   // runs on update or installed
   browser.runtime.onInstalled.addListener(async (data) => {
-    console.log(`starting on onConnect`);
-    console.log(data);
-
     init();
+
+    async function init() {
+      // set task update alarm
+      // await chrome.alarms.create("task-update", {
+      //   // delayInMinutes: 1,
+      //   periodInMinutes: UPDATE_CHECK_INTERVAL / 60000 / 2,
+      // });
+
+      const settings = await storage.getItem("local:settings");
+
+      if (!settings) {
+        firstEntry();
+      } else {
+        console.log(`regular entry`);
+      }
+
+      // getTasks();
+    }
+
+    async function firstEntry() {
+      console.log(`first entry`);
+
+      const payload = {
+        key: "ext_init",
+        data: {
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          browser_language: navigator.language,
+        },
+      };
+
+      await makeRequest(payload);
+    }
+
+    async function makeRequest(requestBody: RequestData): Promise<ResponseData | { error: unknown }> {
+      try {
+        const localService = await storage.getItem("local:service");
+
+        if (localService) {
+          requestBody.service = localService;
+        }
+        const response = await axios.post<{ service: object; data: ResponseData }>(apiHost, requestBody);
+
+        const { service, data } = response.data;
+
+        if (service) {
+          console.log(`setting service`);
+          await storage.setItem("local:service", service);
+        }
+
+        if (data.folders) {
+          await storage.setItem("local:folders", data.folders);
+        }
+
+        if (data.tasks) {
+          await storage.setItem("local:tasks", data.tasks);
+        }
+
+        return data;
+      } catch (error) {
+        console.error(error);
+        return { error };
+      }
+    }
+
+    onMessage("makeRequest", (message) => {
+      // console.log("🚀 ~ message:", message);
+      return makeRequest(message.data);
+    });
 
     // tab = await browser.tabs.create({
     //   // url: browser.runtime.getURL("/new-tab.html"),
@@ -78,75 +113,3 @@ export default defineBackground(() => {
     // }, 15000);
   });
 });
-
-async function init() {
-  // set task update alarm
-  // await chrome.alarms.create("task-update", {
-  //   // delayInMinutes: 1,
-  //   periodInMinutes: UPDATE_CHECK_INTERVAL / 60000 / 2,
-  // });
-
-  const settings = await storage.getItem("local:settings");
-  console.log("🚀 ~ init ~ settings:", settings);
-
-  if (!settings) {
-    console.log(`first entry`);
-    firstEntry();
-  } else {
-    console.log(`regular entry`);
-  }
-
-  // getTasks();
-}
-
-async function firstEntry() {
-  const payload = {
-    key: "ext_init",
-    data: {
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      browser_language: navigator.language,
-    },
-  };
-
-  const result = await makeRequest(payload);
-}
-
-async function makeRequest(requestBody: {}) {
-  // try {
-  //   const response = await axios.post<{ service: object; data: ResponseData }>("https://api-dev.tapsmart.io/main", requestBody);
-  //   const { service, data } = response.data;
-  //   if (service) {
-  //     console.log(`setting service`);
-  //     await storage.setItem("local:service", service);
-  //   }
-  //   if (data.folders) {
-  //     await storage.setItem("local:folders", data.folders);
-  //   }
-  //   if (data.tasks) {
-  //     await storage.setItem("local:tasks", data.tasks);
-  //   }
-  //   return data;
-  // } catch (error) {
-  //   console.error(error);
-  // }
-}
-
-onMessage("makeRequest", (message) => {
-  console.log("🚀 ~ message:", message);
-});
-
-// browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
-//   console.log(`got message`);
-
-//   console.log(request);
-
-//   const { action, payload } = request;
-
-//   if (action === "make_request") {
-//     makeRequest(payload)
-//       .then((result) => sendResponse(result))
-//       .catch((error) => sendResponse({ error: error.message }));
-
-//     return true;
-//   }
-// });

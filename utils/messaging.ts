@@ -1,8 +1,7 @@
 import { defineExtensionMessaging } from "@webext-core/messaging";
 
 interface ProtocolMap {
-  // getStringLength(s: string): number;
-  makeRequest(s: object): object;
+  makeRequest(payload: RequestData): ResponseData | { error: unknown };
 }
 
 export const { sendMessage, onMessage } = defineExtensionMessaging<ProtocolMap>();

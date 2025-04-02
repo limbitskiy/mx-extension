@@ -41,9 +41,9 @@ const ALLOWED_HOSTS = new Set(["market.yandex.ru"]);
 
 const props = defineProps<{
   addItem: () => void;
-  deleteItem: () => void;
+  deleteItem: (itemId: number) => void;
+  deleteFolder: (folderId: number) => void;
   moveItem?: () => void;
-  deleteFolder: () => void;
   save: () => void;
   saveSettings: (settings: unknown) => void;
   folders?: Folder[];
@@ -105,6 +105,10 @@ const setDialogRoute = (newRoute: string) => {
 
 const setFolders = (newFolders: Folder[]) => {
   folders.value = newFolders;
+
+  if (!folders.value) {
+    setDialogRoute("folders");
+  }
 };
 
 const setLocalization = (newLocalization: {}) => {

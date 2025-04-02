@@ -2,9 +2,21 @@
 import App from "../components/App.vue";
 import { createApp } from "vue";
 import "./reset.css";
-// import { sendMessage } from "!/utils/messaging";
 
-let app;
+interface MxAppProps {
+  addItem?: () => void;
+  deleteItem?: () => void;
+  deleteFolder?: () => void;
+  saveSettings?: () => void;
+  save?: () => void;
+  setFolders?: (folders: Folder[]) => void;
+  setLocalization?: (locale: Locale[]) => void;
+  dialog?: {
+    setRoute: (route: string) => void;
+  };
+}
+
+let app: ComponentPublicInstance & MxAppProps;
 
 export default defineContentScript({
   matches: ["<all_urls>"],
@@ -16,29 +28,24 @@ export default defineContentScript({
       position: "inline",
       anchor: "body",
       onMount: (container) => {
-        // Define how your UI will be mounted inside the container
-        app = createApp(App, {
+        const _app = createApp(App, {
           addItem: onAddLink,
           deleteItem: onDeleteLink,
           deleteFolder: onDeleteFolder,
           saveSettings: onSaveSettings,
           save: onCreateItem,
         });
-        app.mount(container);
-        init();
-        console.log(app);
 
-        return app;
+        app = _app.mount(container);
+        init();
+
+        return _app;
       },
       onRemove: (app) => {
-        // Unmount the app when the UI is removed
         app?.unmount();
       },
     });
 
-    console.log(ui);
-
-    // 4. Mount the UI
     ui.mount();
   },
 });
@@ -56,124 +63,131 @@ async function init() {
       key: "ext_get_items",
     };
 
-    console.log(`sending message`);
+    const response = await sendRequest(payload);
 
-    const folders = await sendMessage("makeRequest", payload);
-    console.log("🚀 ~ init ~ folders:", folders);
-    // const { folders } = await browser.runtime.sendMessage({ action: "make_request", payload });
-    app?.setFolders!(folders);
+    if (response?.folders) {
+      app.setFolders!(response.folders);
+    }
 
-    // changeDialogRoute("folders");
+    if (response?.locale) {
+      app.setLocalization!(response.locale);
+    }
   }
-
-  const localization = {
-    app_title: "Мои хотелки",
-    save: "Сохранить",
-    delete: "Удалить",
-    // ---
-    settings: "Настройки",
-    settings_city_label: "Ваш город:",
-    settings_city_placeholder: "Москва",
-    settings_notifications_label: "Куда получать уведомления:",
-    settings_notifications_placeholder: "Москва",
-    // ---
-    confirm_telegram_title: "Подтверждение Telegram",
-    confirm_telegram_message: "Открываю Telegram bot<br />Нажмите в боте кнопку Start",
-    confirm_telegram_button: "Я подключил бота",
-    // ---
-    confirm_email_title: "Подтверждение email",
-    confirm_email_message: "На вашу почту отправлено письмо с кодом",
-    confirm_email_label: "Введите код:",
-    confirm_email_button: "Подтвердить email",
-    // ---
-    links_title: "Ссылки",
-    // ---
-    folders_title: "Папки",
-    folders_no_folders: "Тут пока ничего нету. <br /> Добавляйте хотелки, нажимая на кнопку <b>Save</b> с правой стороны экрана когда находитесь на странице товара.",
-    // ---
-    unknown_route_title: "Неизвестный сайт",
-    unknown_route_message: "Предложите нам подключить хост к нашей системе, нажав кнопку",
-    unknown_route_button: "Предложить",
-    // ---
-    404: "Неизвестная страница",
-  };
 
   // app?.setLocalization!(localization);
 }
 
 function changeDialogRoute(newRoute: string) {
-  // app?.dialog!.setRoute(newRoute);
+  app?.dialog!.setRoute(newRoute);
 }
 
 function onAddLink() {
   console.log(`add link`);
 }
 
-function onDeleteLink() {
+async function onDeleteLink(itemId: string) {
   console.log(`delete link`);
+
+  const payload = {
+    key: "ext_delete_item",
+    data: {
+      itemId,
+    },
+  };
+
+  const response = await sendRequest(payload);
+
+  if (response && "folders" in response) {
+    app.setFolders!(response.folders);
+  }
 }
 
-function onDeleteFolder() {
+async function onDeleteFolder(folderId: string) {
   console.log(`delete folder`);
+
+  const payload = {
+    key: "ext_delete_folder",
+    data: {
+      folderId,
+    },
+  };
+
+  const response = await sendRequest(payload);
+
+  if (response && "folders" in response) {
+    app.setFolders!(response.folders);
+  }
 }
 
 async function onSaveSettings(data: {}) {
-  console.log(data);
-
   const payload = {
     key: "ext_set_profile",
     data,
   };
 
-  const { status } = await chrome.runtime.sendMessage({ action: "make_request", payload });
+  const response = await sendRequest(payload);
 
-  if (status !== "ok") {
-    console.error(`Did not recieve an OK status from server. Got status: ${status}`);
-  } else {
-    chrome.storage.local.set({ settings: { confirmed: true } });
+  if (response) {
+    console.log(`saving data`);
+    await storage.setItem("local:settings", { confirmed: true });
   }
 }
 
 async function onCreateItem() {
-  console.log(`creating link...`);
-
-  const addItemPayload = {
+  const payload = {
     key: "ext_add_item",
     data: {
-      url: location.href,
+      url: location?.href,
       html: document.body.innerHTML,
+      title: document.title,
     },
   };
 
-  await chrome.runtime.sendMessage({ action: "make_request", payload: addItemPayload });
+  const response = await sendRequest(payload);
+
+  if (response && "folders" in response) {
+    app.setFolders!(response.folders);
+  }
 }
 
-// export default defineContentScript({
-//   matches: ["*://*/*"],
-//   cssInjectionMode: "ui",
+async function sendRequest(payload: RequestData) {
+  const response = await sendMessage("makeRequest", payload);
 
-//   async main(ctx) {
-//     const ui = await defineOverlay(ctx);
+  if ("error" in response) {
+    console.error("Ошибка:", response.error);
+  } else {
+    return response;
+  }
+}
 
-//     ui.mount();
-
-//     ctx.addEventListener(window, "wxt:locationchange", (event) => {
-//       ui.mount();
-//     });
-//   },
-// });
-
-// function defineOverlay(ctx: ContentScriptContext) {
-//   return createIntegratedUi(ctx, {
-//     position: "inline",
-//     anchor: "body",
-//     onMount: (container) => {
-//       const app = createApp(App);
-//       app.mount(container);
-//       return app;
-//     },
-//     onRemove(app) {
-//       app?.unmount();
-//     },
-//   });
-// }
+// const localization = {
+//   app_title: "Мои хотелки",
+//   save: "Сохранить",
+//   delete: "Удалить",
+//   // ---
+//   settings: "Настройки",
+//   settings_city_label: "Ваш город:",
+//   settings_city_placeholder: "Москва",
+//   settings_notifications_label: "Куда получать уведомления:",
+//   settings_notifications_placeholder: "Москва",
+//   // ---
+//   confirm_telegram_title: "Подтверждение Telegram",
+//   confirm_telegram_message: "Открываю Telegram bot<br />Нажмите в боте кнопку Start",
+//   confirm_telegram_button: "Я подключил бота",
+//   // ---
+//   confirm_email_title: "Подтверждение email",
+//   confirm_email_message: "На вашу почту отправлено письмо с кодом",
+//   confirm_email_label: "Введите код:",
+//   confirm_email_button: "Подтвердить email",
+//   // ---
+//   links_title: "Ссылки",
+//   // ---
+//   folders_title: "Папки",
+//   folders_no_folders: "Тут пока ничего нету. <br /> Добавляйте хотелки, нажимая на кнопку <b>Save</b> с правой стороны экрана когда находитесь на странице товара.",
+//   // ---
+//   unknown_route_title: "Неизвестный сайт",
+//   unknown_route_message: "Предложите нам подключить хост к нашей системе, нажав кнопку",
+//   unknown_route_button: "Предложить",
+//   // ---
+//   404: "Неизвестная страница",
+// };

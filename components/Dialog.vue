@@ -57,8 +57,8 @@
                 Telegram
               </label>
 
-              <label>
-                <input v-model="settings.contactType" type="radio" value="email" :class="$style['radio']" />
+              <label style="color: grey; cursor: not-allowed">
+                <input v-model="settings.contactType" type="radio" value="email" :class="$style['radio']" disabled />
                 E-mail
               </label>
 
@@ -68,11 +68,11 @@
                 name="adress"
                 :class="$style['input']"
                 placeholder="mymail@mail.com"
-                style="font-size: 14px"
-                :disabled="settings.contactType != 'email'"
+                style="font-size: 14px; cursor: not-allowed"
+                disabled
               />
 
-              <label style="color: grey">
+              <label style="color: grey; cursor: not-allowed">
                 <input v-model="settings.contactType" type="radio" value="whatsapp" :class="$style['radio']" disabled />
                 WhatsApp
               </label>
@@ -141,7 +141,7 @@
       <!-- folders -->
       <template v-else-if="currentRoute === 'folders'">
         <!-- folders exist -->
-        <template v-if="folders.length">
+        <template v-if="folders?.length">
           <div :class="$style['subtitle']">{{ localization["folders_title"] ?? "Folders" }}</div>
           <div style="display: flex; flex-direction: column; gap: 0.5rem">
             <div v-for="folder in folders" :key="folder.id" :class="[$style['folder'], $style['hoverable']]" @click="() => onFolderClick(folder)">
@@ -197,11 +197,15 @@ import OptionsBtn from "./ui/OptionsBtn.vue";
 import LinkBadge from "./ui/LinkBadge.vue";
 import { computed } from "vue";
 
-import type { Folder, ThemeConfig } from "./types";
+interface ThemeConfig {
+  colors: Record<string, string>;
+  fonts: Record<string, string>;
+  misc: Record<string, string>;
+}
 
 interface DialogProps {
   theme: ThemeConfig;
-  folders: Folder[];
+  folders?: Folder[];
   localization: { [key: string]: string };
 }
 
@@ -209,9 +213,9 @@ const props = defineProps<DialogProps>();
 
 const emit = defineEmits<{
   addItem: [item: {}];
-  deleteItem: [item: {}];
+  deleteItem: [itemId: string];
+  deleteFolder: [folderId: string];
   moveItem: [item: {}];
-  deleteFolder: [folder: {}];
   close: [];
   "save-settings": [data: {}];
 }>();
@@ -240,8 +244,8 @@ const onBackBtnClick = () => {
   setRoute("folders");
 };
 
-const onMenuClick = ({ action }, item) => {
-  emit(action, item);
+const onMenuClick = (data: { action: string }, item: Item) => {
+  emit(data.action, item.id);
 };
 
 const onClose = () => {

@@ -8,28 +8,50 @@ import axios from "axios";
 export default defineBackground(async () => {
   const apiHost = "https://api-dev.tapsmart.io/main";
   let tab;
-  const UPDATE_CHECK_INTERVAL = 5000;
+  const UPDATE_CHECK_INTERVAL_IN_MINUTES = 1;
+
+  (browser.action ?? browser.browserAction).onClicked.addListener(async (tab) => {
+    console.log(`button click`);
+    await storage.setItem("local:isDialogOpen", true);
+  });
 
   // runs on update or installed
   browser.runtime.onInstalled.addListener(async (data) => {
     init();
 
+    const tab = await browser.tabs.create({
+      url: browser.runtime.getURL("new-tab.html"),
+      active: false,
+    });
+
     async function init() {
       // set task update alarm
-      // await chrome.alarms.create("task-update", {
-      //   // delayInMinutes: 1,
-      //   periodInMinutes: UPDATE_CHECK_INTERVAL / 60000 / 2,
-      // });
+      browser.alarms.create("task-update", {
+        periodInMinutes: UPDATE_CHECK_INTERVAL_IN_MINUTES,
+      });
 
       const settings = await storage.getItem("local:settings");
 
-      if (!settings) {
+      if (!settings?.confirmed) {
         firstEntry();
       } else {
         console.log(`regular entry`);
+        getTasks();
       }
+    }
 
-      // getTasks();
+    async function getTasks() {
+      console.log(`starting get tasks`);
+
+      const settings = await storage.getItem("local:settings");
+      if (!settings?.confirmed) return;
+
+      const payload = {
+        key: "ext_read_tasks",
+      };
+
+      const result = await makeRequest(payload);
+      console.log("🚀 ~ getTasks ~ result:", result);
     }
 
     async function firstEntry() {
@@ -62,12 +84,20 @@ export default defineBackground(async () => {
           await storage.setItem("local:service", service);
         }
 
-        if (data.folders) {
+        if ("folders" in data) {
           await storage.setItem("local:folders", data.folders);
         }
 
-        if (data.tasks) {
+        if ("tasks" in data) {
           await storage.setItem("local:tasks", data.tasks);
+        }
+
+        if ("locale" in data) {
+          await storage.setItem("local:locale", data.locale);
+        }
+
+        if ("url_icon" in data) {
+          await storage.setItem("local:url_icon", data.url_icon);
         }
 
         return data;
@@ -78,8 +108,15 @@ export default defineBackground(async () => {
     }
 
     onMessage("makeRequest", (message) => {
-      // console.log("🚀 ~ message:", message);
+      console.log("🚀 ~ message:", message);
       return makeRequest(message.data);
+    });
+
+    browser.alarms.onAlarm.addListener((alarm) => {
+      if (alarm.name === "task-update") {
+        console.log("getting tasks at", new Date());
+        getTasks();
+      }
     });
 
     // tab = await browser.tabs.create({

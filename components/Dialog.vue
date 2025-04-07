@@ -140,8 +140,20 @@
 
       <!-- folders -->
       <template v-else-if="currentRoute === 'folders'">
+        <!-- no match -->
+        <template v-if="!isMatch">
+          <div :class="$style['no-folders']">
+            <div style="display: flex; flex-direction: column; gap: 0.5rem">
+              <span v-html="localization['no_match_text'] ?? 'This host is not supported yet. Press `Start tracking` to send us a message'" />
+            </div>
+          </div>
+
+          <div class="start-tracking-btn">
+            <button :class="$style['success-button']" @click="onStartTracking">{{ localization["start_tracking_button"] ?? "Start tracking" }}</button>
+          </div>
+        </template>
         <!-- folders exist -->
-        <template v-if="folders?.length">
+        <template v-else-if="folders?.length">
           <div :class="$style['subtitle']">{{ localization["folders_title"] ?? "Folders" }}</div>
           <div style="display: flex; flex-direction: column; gap: 0.5rem">
             <div v-for="folder in folders" :key="folder.id" :class="[$style['folder'], $style['hoverable']]" @click="() => onFolderClick(folder)">
@@ -207,12 +219,19 @@ interface DialogProps {
   theme: ThemeConfig;
   folders?: Folder[];
   localization: { [key: string]: string };
+  isMatch?: boolean;
 }
 
 const props = defineProps<DialogProps>();
 
+// watch(
+//   () => props,
+//   (val) => {
+//     console.log(val);
+//   }
+// );
+
 const emit = defineEmits<{
-  addItem: [item: {}];
   deleteItem: [itemId: string];
   deleteFolder: [folderId: string];
   moveItem: [item: {}];
@@ -250,6 +269,10 @@ const onMenuClick = (data: { action: string }, item: Item) => {
 
 const onClose = () => {
   emit("close");
+};
+
+const onStartTracking = () => {
+  console.log(`started tracking`);
 };
 
 const onBotConfirmed = () => {
@@ -298,6 +321,7 @@ defineExpose({ setRoute });
 
 <style lang="scss" module>
 .mx-dialog {
+  z-index: 99999;
   width: min(90%, 300px);
   height: 45%;
   background-color: v-bind("theme.colors.accent");
@@ -419,6 +443,7 @@ defineExpose({ setRoute });
   border: none;
   font-family: Arial, Helvetica, sans-serif;
   cursor: pointer;
+  width: 100%;
 
   &:hover {
     filter: brightness(105%);

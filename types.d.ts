@@ -36,4 +36,5 @@ interface ResponseData {
   folders: Folder[];
   tasks: Task[];
   locale: Locale[];
+  url_icon: string[];
 }

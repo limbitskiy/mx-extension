@@ -1,24 +1,27 @@
-import { ContentScriptContext } from "wxt/client";
-import App from "../App.vue";
+import App from "../components/Overlay.vue";
 import { createApp } from "vue";
 import "./reset.css";
 
+let app: ComponentPublicInstance;
+
 export default defineContentScript({
-  matches: ["*://*/*"],
+  matches: ["<all_urls>"],
   cssInjectionMode: "ui",
 
   async main(ctx) {
     const ui = await defineOverlay(ctx);
 
+    // Mount initially
     ui.mount();
 
+    // Re-mount when page changes
     ctx.addEventListener(window, "wxt:locationchange", (event) => {
       ui.mount();
     });
   },
 });
 
-function defineOverlay(ctx: ContentScriptContext) {
+function defineOverlay(ctx) {
   return createShadowRootUi(ctx, {
     name: "vue-overlay",
     position: "modal",

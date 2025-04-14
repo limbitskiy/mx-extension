@@ -1,4 +1,6 @@
+import { ContentScriptContext } from "wxt/client";
 import App from "../components/App.vue";
+import Overlay from "../components/Overlay.vue";
 import { createApp } from "vue";
 import "./reset.css";
 
@@ -9,24 +11,69 @@ export default defineContentScript({
   cssInjectionMode: "ui",
 
   async main(ctx) {
-    const ui = await createShadowRootUi(ctx, {
-      name: "example-ui",
-      position: "inline",
-      anchor: "body",
-      onMount: (container) => {
-        const _app = createApp(App);
+    if (location.search.includes("parser")) {
+      // console.log(`includes parser`);
 
-        app = _app.mount(container);
-        return _app;
-      },
-      onRemove: (app) => {
-        app?.unmount();
-      },
-    });
+      const ui = await defineOverlay(ctx);
 
-    ui.mount();
+      // Mount initially
+      ui.mount();
+
+      // Re-mount when page changes
+      ctx.addEventListener(window, "wxt:locationchange", (event) => {
+        if (location.search.includes("parser")) {
+          // console.log(`includes parser`);
+          ui.mount();
+        }
+      });
+    } else {
+      // console.log(`doesn't include parser`);
+      const ui = await createShadowRootUi(ctx, {
+        name: "example-ui",
+        position: "inline",
+        anchor: "body",
+        onMount: (container) => {
+          const _app = createApp(App);
+
+          app = _app.mount(container);
+          return _app;
+        },
+        onRemove: (app) => {
+          app?.unmount();
+        },
+      });
+
+      ui.mount();
+    }
   },
 });
+
+function defineOverlay(ctx: ContentScriptContext) {
+  return createShadowRootUi(ctx, {
+    name: "vue-overlay",
+    position: "modal",
+    zIndex: 99999,
+    onMount(container, _shadow, shadowHost) {
+      const app = createApp(Overlay);
+      app.mount(container);
+      // shadowHost.style.pointerEvents = "none";
+      return app;
+    },
+    onRemove(app) {
+      app?.unmount();
+    },
+  });
+}
+
+// browser.runtime.onMessage.addListener((event) => {
+//   if (event.type === "openInTab") {
+//     console.log("🚀 ~ event:", event);
+//   }
+// });
+
+// onMessage("openHref", (href) => {
+//   console.log("🚀 ~ href:", href);
+// });
 
 // const localization = {
 //   app_title: "Мои хотелки",

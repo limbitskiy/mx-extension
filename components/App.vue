@@ -59,7 +59,7 @@ const props = defineProps<{}>();
 
 const { state: matches } = useStorage<string[]>("local:url_icon");
 const { state: settings } = useStorage<object>("local:settings");
-const { state: folders } = useStorage<[]>("local:folders", []);
+const { state: folders } = useStorage<Folder[]>("local:folders", []);
 const { state: locale } = useStorage<{ [key: string]: string }>("local:locale", {});
 const { state: isDialogOpen } = useStorage<boolean>("local:isDialogOpen", false);
 
@@ -95,10 +95,7 @@ const theme = shallowRef({
 
 const dialogRef = useTemplateRef("dialogRef");
 
-// const dialogVisible = shallowRef(false);
-const isButtonCheckbox = computed(() =>
-  folders.value?.some((folder) => folder.items.some((item) => new URLSearchParams(item.url).get("uniqueId") == new URLSearchParams(location.href).get("uniqueId")))
-);
+const isButtonCheckbox = ref(false);
 
 watch(isMatch, (val) => {
   if (val) {
@@ -117,7 +114,8 @@ function onCloseDialog() {
 }
 
 async function onAddItem() {
-  if (!isRegistered.value) return;
+  // if (!isRegistered.value) return;
+  isButtonCheckbox.value = true;
 
   const result = await addItem();
   console.log("🚀 ~ onSave ~ addItem:", result);

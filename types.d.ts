@@ -19,7 +19,7 @@ interface Task {
   id: number;
   period: number; // in seconds
   url: string;
-  lastUpdated?: number;
+  updateIn?: number;
 }
 
 interface Locale {

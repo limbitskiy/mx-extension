@@ -1,33 +1,39 @@
 import { defineBackground } from "wxt/sandbox";
-import { browser } from "wxt/browser";
+import { browser, Tabs } from "wxt/browser";
 import axios from "axios";
+import { QueueController } from "@/utils/QueueController";
 
 // check storage:
 // chrome.storage.local.get(null, (data) => console.log(data))
+const apiHost = "https://api-dev.tapsmart.io/main";
+const GET_TASKS_INTERVAL_IN_MINUTES = 4.5;
+const CHECK_TASKS_INTERVAL_IN_MINUTES = 5;
+let parserTab: Tabs.Tab;
 
-export default defineBackground(async () => {
-  const apiHost = "https://api-dev.tapsmart.io/main";
-  let tab;
-  const UPDATE_CHECK_INTERVAL_IN_MINUTES = 1;
-
+export default defineBackground(() => {
   (browser.action ?? browser.browserAction).onClicked.addListener(async (tab) => {
-    console.log(`button click`);
     await storage.setItem("local:isDialogOpen", true);
   });
 
   // runs on update or installed
   browser.runtime.onInstalled.addListener(async (data) => {
+    const queueController = new QueueController(updateTab);
+
     init();
 
-    const tab = await browser.tabs.create({
-      url: browser.runtime.getURL("new-tab.html"),
+    parserTab = await browser.tabs.create({
+      url: browser.runtime.getURL("/new-tab.html"),
       active: false,
     });
 
     async function init() {
       // set task update alarm
       browser.alarms.create("task-update", {
-        periodInMinutes: UPDATE_CHECK_INTERVAL_IN_MINUTES,
+        periodInMinutes: GET_TASKS_INTERVAL_IN_MINUTES,
+      });
+
+      browser.alarms.create("task-check", {
+        periodInMinutes: CHECK_TASKS_INTERVAL_IN_MINUTES,
       });
 
       const settings = await storage.getItem("local:settings");
@@ -51,6 +57,10 @@ export default defineBackground(async () => {
       };
 
       const result = await makeRequest(payload);
+
+      if ("tasks" in result) {
+        await handleNewTasks(result.tasks ?? []);
+      }
       console.log("🚀 ~ getTasks ~ result:", result);
     }
 
@@ -79,6 +89,8 @@ export default defineBackground(async () => {
 
         const { service, data } = response.data;
 
+        if (!data) return { error: "no data" };
+
         if (service) {
           console.log(`setting service`);
           await storage.setItem("local:service", service);
@@ -89,7 +101,8 @@ export default defineBackground(async () => {
         }
 
         if ("tasks" in data) {
-          await storage.setItem("local:tasks", data.tasks);
+          await handleNewTasks(data.tasks);
+          // await storage.setItem("local:tasks", data.tasks);
         }
 
         if ("locale" in data) {
@@ -107,9 +120,71 @@ export default defineBackground(async () => {
       }
     }
 
+    async function handleNewTasks(newTasks: Task[]) {
+      const localTasks = (await storage.getItem<Task[]>("local:tasks")) ?? [];
+      const changedTasks: Task[] = [];
+
+      newTasks.forEach((newTask) => {
+        const localTask = localTasks.find((localTask) => localTask.id === newTask.id);
+
+        if (localTask) {
+          if (localTask.period != newTask.period) {
+            localTask.period = newTask.period;
+          }
+          changedTasks.push(localTask);
+        } else {
+          changedTasks.push({ ...newTask, updateIn: newTask.period });
+        }
+      });
+
+      await storage.setItem("local:tasks", changedTasks);
+    }
+
+    async function checkTasks() {
+      const tasks = (await storage.getItem<Task[]>("local:tasks")) ?? [];
+      const updatedTasks: Task[] = [];
+
+      if (tasks?.length) {
+        tasks.forEach(async (task) => {
+          task.updateIn! -= CHECK_TASKS_INTERVAL_IN_MINUTES * 60000;
+
+          if (task.updateIn! < 0) {
+            queueController.add(task.url);
+            task.updateIn = task.period;
+            updatedTasks.push(task);
+          }
+        });
+      }
+
+      await storage.setItem("local:tasks", updatedTasks);
+    }
+
+    async function updateTab(url: string) {
+      console.log(String(url));
+
+      await browser.tabs.update(parserTab.id, {
+        url: `${url}?parser=true`,
+      });
+    }
+
     onMessage("makeRequest", (message) => {
       console.log("🚀 ~ message:", message);
       return makeRequest(message.data);
+    });
+
+    onMessage("sendParsedPage", async (page) => {
+      console.log(`got a parsed page : ${page.data.url}`);
+
+      const { data } = page;
+
+      const payload = {
+        key: "ext_update_tasks",
+        data,
+      };
+
+      await makeRequest(payload);
+
+      queueController.finish();
     });
 
     browser.alarms.onAlarm.addListener((alarm) => {
@@ -119,34 +194,11 @@ export default defineBackground(async () => {
       }
     });
 
-    // tab = await browser.tabs.create({
-    //   // url: browser.runtime.getURL("/new-tab.html"),
-    //   url: "https://market.yandex.ru",
-    //   active: false,
-    // });
-
-    // const res = await browser.scripting.executeScript({
-    //   target: { tabId: tab.id },
-    //   files: ["content-scripts/tab.js"],
-    // });
-
-    // console.log("🚀 ~ browser.runtime.onInstalled.addListener ~ res:", res);
-    // if (reason !== "install") {
-    // }
-    // setTimeout(async () => {
-    //   await browser.tabs.update(tab.id, {
-    //     url: "https://www.ozon.ru/#content/",
-    //   });
-    // }, 5000);
-    // setTimeout(async () => {
-    //   await browser.tabs.update(tab.id, {
-    //     url: "https://www.wildberries.ru/#content/",
-    //   });
-    // }, 10000);
-    // setTimeout(async () => {
-    //   await browser.tabs.update(tab.id, {
-    //     url: "https://www.booking.com/#content/",
-    //   });
-    // }, 15000);
+    browser.alarms.onAlarm.addListener((alarm) => {
+      if (alarm.name === "task-check") {
+        console.log("checking tasks at", new Date());
+        checkTasks();
+      }
+    });
   });
 });

@@ -61,6 +61,10 @@ export async function getIcon() {
   return await sendRequest(payload);
 }
 
+export async function requestTabId() {
+  return await sendMessage("requestTabId", "requestTabId");
+}
+
 async function sendRequest(payload: RequestData) {
   const response = await sendMessage("makeRequest", payload);
 

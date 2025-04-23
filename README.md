@@ -8,6 +8,8 @@ Allows you to track product prices on different platforms and much more.
 yarn
 # or
 npm install
+# or
+pnpm install
 ```
 
 ### Build the project
@@ -16,6 +18,8 @@ npm install
 yarn build
 # or
 npm run build
+# or
+pnpm build
 ```
 
 ### Activate in chrome
@@ -23,5 +27,5 @@ npm run build
 - Go to **chrome://extensions**
 - Turn on 'developer mode' in the top right corner
 - Press 'load unpacked' in top left corner
-- Navigate to the dist folder that you've just built
+- Navigate to **.output/chrome-mv3** folder that you've just built
 - Enjoy!

@@ -12,7 +12,10 @@ let parserTab: Tabs.Tab;
 
 export default defineBackground(() => {
   (browser.action ?? browser.browserAction).onClicked.addListener(async (tab) => {
-    await storage.setItem("local:isDialogOpen", true);
+    const dialogSettings = (await storage.getItem("local:dialogSettings")) ?? {};
+    // const settings = await storage.getItem("local:settings");
+    dialogSettings[tab.id] = true;
+    await storage.setItem("local:dialogSettings", dialogSettings);
   });
 
   // runs on update or installed
@@ -113,6 +116,16 @@ export default defineBackground(() => {
           await storage.setItem("local:url_icon", data.url_icon);
         }
 
+        if ("region" in data) {
+          const settings = await storage.getItem("local:settings");
+          await storage.setItem("local:settings", { ...(settings as {}), region: data.region });
+        }
+
+        if ("contactUrl" in data) {
+          const settings = await storage.getItem("local:settings");
+          await storage.setItem("local:settings", { ...(settings as {}), contactUrl: data.contactUrl });
+        }
+
         return data;
       } catch (error) {
         console.error(error);
@@ -162,14 +175,21 @@ export default defineBackground(() => {
     async function updateTab(url: string) {
       console.log(String(url));
 
+      const _url = new URL(url);
+      _url.searchParams.set("ext_data", "true");
+
       await browser.tabs.update(parserTab.id, {
-        url: `${url}?parser=true`,
+        url: _url.toString(),
       });
     }
 
     onMessage("makeRequest", (message) => {
       console.log("🚀 ~ message:", message);
       return makeRequest(message.data);
+    });
+
+    onMessage("requestTabId", (data) => {
+      return data?.sender?.tab?.id;
     });
 
     onMessage("sendParsedPage", async (page) => {
@@ -187,6 +207,15 @@ export default defineBackground(() => {
       queueController.finish();
     });
 
+    async function closeCurrentTabDialog(tabId: number) {
+      const dialogSettings = await storage.getItem("local:dialogSettings");
+
+      if (dialogSettings && tabId in dialogSettings) {
+        delete dialogSettings[tabId];
+        await storage.setItem("local:dialogSettings", dialogSettings);
+      }
+    }
+
     browser.alarms.onAlarm.addListener((alarm) => {
       if (alarm.name === "task-update") {
         console.log("getting tasks at", new Date());
@@ -199,6 +228,14 @@ export default defineBackground(() => {
         console.log("checking tasks at", new Date());
         checkTasks();
       }
+    });
+
+    browser.tabs.onRemoved.addListener(async (tabId) => {
+      await closeCurrentTabDialog(tabId);
+    });
+
+    browser.tabs.onUpdated.addListener(async (tabId) => {
+      await closeCurrentTabDialog(tabId);
     });
   });
 });

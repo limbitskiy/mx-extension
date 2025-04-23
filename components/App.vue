@@ -1,5 +1,4 @@
 <template>
-  <!-- <Teleport to="body"> -->
   <transition name="fade">
     <Dialog
       v-show="isDialogOpen"
@@ -11,14 +10,13 @@
       @deleteItem="onDeleteItem"
       @deleteFolder="deleteFolder"
       @moveItem="onMoveItem"
-      @close="onCloseDialog"
+      @close="closeDialog"
       @save-settings="onSaveSettings"
     />
   </transition>
-  <!-- </Teleport> -->
 
   <transition name="fade">
-    <div v-if="tooltip.visible" class="tooltip" :class="$style['tooltip']">
+    <div v-show="tooltip.visible" ref="tooltipRef" class="tooltip" :class="$style['tooltip']">
       <div class="tooltip-wrap">
         <span>{{ tooltip.text }}</span>
       </div>
@@ -27,7 +25,7 @@
 
   <!-- button -->
   <transition name="slide-left" appear>
-    <div v-if="isMatch" :class="$style['mx-button-cnt']" @mouseenter="onButtonHover" @mouseleave="onButtonMouseLeave">
+    <div ref="mainButton" v-show="isMatch" :class="$style['mx-button-cnt']" @mouseenter="onButtonHover" @mouseleave="onButtonMouseLeave">
       <div :class="[$style['mx-button'], $style['mx-button-toggle']]" @click="onToggleDialog">
         Mx
         <div v-if="badge" :class="$style['badge']">
@@ -48,28 +46,60 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, ref, shallowRef, useTemplateRef } from "vue";
+import { onMounted, ref, shallowRef, useTemplateRef, computed } from "vue";
 import Dialog from "./Dialog.vue";
 import AnimatedTick from "./ui/AnimatedTick.vue";
+import { useElementBounding } from "@vueuse/core";
 
-import { addItem, deleteItem, deleteFolder, saveSettings, getItems, getIcon } from "@/api/index";
+import { addItem, deleteItem, deleteFolder, saveSettings, getItems, getIcon, requestTabId } from "@/api/index";
 import useStorage from "@/composables/useStorage";
 
 const props = defineProps<{}>();
 
-const { state: matches } = useStorage<string[]>("local:url_icon");
-const { state: settings } = useStorage<object>("local:settings");
+interface DialogSettings {
+  [tabId: number]: boolean;
+}
+
+interface AppSettings {
+  confirmed: boolean;
+}
+
+// const { state: matches } = useStorage<string[]>("local:url_icon", []);
+const { state: settings } = useStorage<AppSettings>("local:settings");
 const { state: folders } = useStorage<Folder[]>("local:folders", []);
 const { state: locale } = useStorage<{ [key: string]: string }>("local:locale", {});
-const { state: isDialogOpen } = useStorage<boolean>("local:isDialogOpen", false);
+const { state: dialogSettings } = useStorage<DialogSettings>("local:dialogSettings", {});
 
+const mainButton = useTemplateRef("mainButton");
+const tooltipRef = useTemplateRef("tooltipRef");
+const { top: buttonTop } = useElementBounding(mainButton);
+const { height: tooltipHeight } = useElementBounding(tooltipRef);
+
+const tooltipPosition = computed(() => buttonTop.value - tooltipHeight.value - 10 + "px");
+
+const tabId = shallowRef();
 const badge = shallowRef("");
 const tooltip = ref({
   text: "",
   visible: false,
 });
+const isDialogOpen = ref(false);
+const isMatch = ref(false);
 
-const isMatch = computed(() => matches.value?.some((host) => new RegExp(host).test(location.href)));
+watch(dialogSettings, async (val) => {
+  const _settings = (await storage.getItem("local:settings")) ?? {};
+
+  if (!_settings?.confirmed) {
+    setDialogRoute("settings");
+  }
+
+  if (val[tabId.value]) {
+    isDialogOpen.value = true;
+  } else if (val[tabId.value] === false) {
+    isDialogOpen.value = false;
+  }
+});
+
 const isRegistered = computed(() => settings.value?.confirmed);
 
 const theme = shallowRef({
@@ -96,21 +126,27 @@ const theme = shallowRef({
 const dialogRef = useTemplateRef("dialogRef");
 
 const isButtonCheckbox = ref(false);
-
-watch(isMatch, (val) => {
-  if (val) {
-    init();
-  }
-});
+// const isButtonCheckbox = computed(() =>
+//   folders.value?.some((folder) =>
+//     folder.items.some((item) => {
+//       const itemUrl = new URL(item.url);
+//       return itemUrl.pathname === location.pathname;
+//     })
+//   )
+// );
 
 function onToggleDialog() {
-  // dialogVisible.value = !dialogVisible.value;
-  isDialogOpen.value = !isDialogOpen.value;
+  openDialog();
 }
 
-function onCloseDialog() {
-  // dialogVisible.value = false;
-  isDialogOpen.value = false;
+async function closeDialog() {
+  const _dialogSettings = (await storage.getItem("local:dialogSettings")) ?? {};
+  await storage.setItem("local:dialogSettings", { ..._dialogSettings, [tabId.value]: false });
+}
+
+async function openDialog() {
+  const _dialogSettings = (await storage.getItem("local:dialogSettings")) ?? {};
+  await storage.setItem("local:dialogSettings", { ..._dialogSettings, [tabId.value]: true });
 }
 
 async function onAddItem() {
@@ -129,7 +165,7 @@ async function onDeleteItem(itemId: string) {
 async function onSaveSettings(_settings: object) {
   const result = await saveSettings(_settings);
   console.log("🚀 ~ onSave ~ saveSettings:", result);
-  settings.value = { confirmed: true };
+  settings.value = { ...settings.value, confirmed: true };
 }
 
 async function onMoveItem() {}
@@ -137,17 +173,23 @@ async function onMoveItem() {}
 async function init() {
   // manually get settings because they could still be null in watcher
   const _settings = await storage.getItem("local:settings");
+  const _matches = await storage.getItem("local:url_icon");
+
+  isMatch.value = _matches?.some((host) => new RegExp(host).test(location.href));
+
+  tabId.value = await requestTabId();
+  console.log("🚀 ~ init ~ tabId.value:", tabId.value);
 
   if (!_settings?.confirmed) {
     console.log(`first entry`);
-    setDialogRoute("settings");
-  } else {
+    openDialog();
+  } else if (isMatch) {
     console.log(`regular entry`);
-    const result = await (<{ badge?: string; tooltip?: string }>getItems());
-    console.log("🚀 ~ init ~ getItems:", result);
+    await (<{ badge?: string; tooltip?: string }>getItems());
   }
 
   const { badge: _badge, tooltip: _tooltipText } = await (<{ badge?: string; tooltip?: string }>getIcon());
+
   if (_badge) {
     badge.value = _badge;
   }
@@ -171,11 +213,14 @@ function setDialogRoute(newRoute: string) {
   dialogRef.value?.setRoute(newRoute);
 }
 
-onMounted(() => {
-  isDialogOpen.value = false;
+onMounted(async () => {
+  init();
+  console.log(`mount`);
 });
 
-onUnmounted(() => {});
+onUnmounted(() => {
+  console.log(`update`);
+});
 </script>
 
 <style lang="scss" module>
@@ -235,7 +280,7 @@ onUnmounted(() => {});
 
 .tooltip {
   position: absolute;
-  top: 42%;
+  top: v-bind(tooltipPosition);
   right: 8px;
   max-width: 150px;
   background: #fff;
@@ -244,6 +289,7 @@ onUnmounted(() => {});
   z-index: 999;
   box-shadow: 2px 2px 4px 2px #00000030;
   color: #222;
+  pointer-events: none;
 
   &::after {
     background-color: #fff;

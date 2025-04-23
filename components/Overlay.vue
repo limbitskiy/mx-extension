@@ -19,8 +19,16 @@ onMounted(() => {
     icon.value = "/assets/vue.svg";
   }, 1000);
 
-  pageHtml = document.documentElement.outerHTML;
-  sendMessage("sendParsedPage", { url: location.href, html: pageHtml });
+  setTimeout(async () => {
+    pageHtml = document.documentElement.outerHTML;
+    await sendMessage("sendParsedPage", { url: location.href, html: pageHtml });
+
+    // const parserTabUrl = await storage.getItem<string>("local:parserTabUrl");
+
+    // if (parserTabUrl) {
+    //   location.href = parserTabUrl;
+    // }
+  }, 30000);
 });
 </script>
 

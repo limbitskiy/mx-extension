@@ -57,7 +57,7 @@
                 Telegram
               </label>
 
-              <label style="color: grey; cursor: not-allowed">
+              <!-- <label style="color: grey; cursor: not-allowed">
                 <input v-model="settings.contactType" type="radio" value="email" :class="$style['radio']" disabled />
                 E-mail
               </label>
@@ -70,7 +70,7 @@
                 placeholder="mymail@mail.com"
                 style="font-size: 14px; cursor: not-allowed"
                 disabled
-              />
+              /> -->
 
               <label style="color: grey; cursor: not-allowed">
                 <input v-model="settings.contactType" type="radio" value="whatsapp" :class="$style['radio']" disabled />
@@ -86,17 +86,17 @@
       </template>
 
       <!-- confirm telegram -->
-      <template v-else-if="currentRoute === 'confirm-telegram'">
+      <!-- <template v-else-if="currentRoute === 'confirm-telegram'">
         <div :class="$style['subtitle']">{{ localization["confirm_telegram_title"] ?? "Confirm telegram" }}</div>
         <div style="flex: 1; display: flex; flex-direction: column">
           <span v-html="localization['confirm_telegram_message'] ?? 'Opening tg bot...'" />
           <div style="flex: 1"></div>
           <button :class="$style['success-button']" @click="onBotConfirmed">{{ localization["confirm_telegram_button"] ?? "I connected tg bot" }}</button>
         </div>
-      </template>
+      </template> -->
 
       <!-- confirm email -->
-      <template v-else-if="currentRoute === 'confirm-email'">
+      <!-- <template v-else-if="currentRoute === 'confirm-email'">
         <div :class="$style['subtitle']">{{ localization["confirm_email_title"] ?? "Confirm E-mail" }}</div>
         <div style="flex: 1; display: flex; flex-direction: column; gap: 0.5rem">
           <span v-html="localization['confirm_email_message'] ?? 'We\'ve sent a message with a one-time code to your mailbox'" />
@@ -107,7 +107,7 @@
           <div style="flex: 1"></div>
           <button :class="$style['success-button']" @click="onEmailConfirmed">{{ localization["confirm_email_button"] ?? "Confirm E-mail" }}</button>
         </div>
-      </template>
+      </template> -->
 
       <!-- links -->
       <template v-else-if="currentRoute === 'folder'">
@@ -141,19 +141,16 @@
       <!-- folders -->
       <template v-else-if="currentRoute === 'folders'">
         <!-- no match -->
-        <template v-if="!isMatch">
-          <div :class="$style['no-folders']">
-            <div style="display: flex; flex-direction: column; gap: 0.5rem">
-              <span v-html="localization['no_match_text'] ?? 'This host is not supported yet. Press `Start tracking` to send us a message'" />
-            </div>
-          </div>
+        <!-- <template v-if="!isMatch">
+          <b>{{ localization["unknown_route_title"] ?? "Unknown host" }}</b>
+          <b>{{ currentUrl }}</b>
+          <span v-html="localization['unknown_route_message'] ?? 'Press button to suggest adding current service to our service'" />
+          <div style="flex: 1"></div>
+          <button :class="$style['success-button']" @click="onAddHost">{{ localization["unknown_route_button"] ?? "Suggest" }}</button>
+        </template> -->
 
-          <div class="start-tracking-btn">
-            <button :class="$style['success-button']" @click="onStartTracking">{{ localization["start_tracking_button"] ?? "Start tracking" }}</button>
-          </div>
-        </template>
         <!-- folders exist -->
-        <template v-else-if="folders?.length">
+        <template v-if="folders?.length">
           <div :class="$style['subtitle']">{{ localization["folders_title"] ?? "Folders" }}</div>
           <div style="display: flex; flex-direction: column; gap: 0.5rem">
             <div v-for="folder in folders" :key="folder.id" :class="[$style['folder'], $style['hoverable']]" @click="() => onFolderClick(folder)">
@@ -163,7 +160,18 @@
                   <LinkBadge :count="folder.items.length" />
                 </div>
                 <div style="display: flex; gap: 4px">
-                  <span :class="$style['timer']">{{ folder.timer[0] + ":" + folder.timer[1] }}</span>
+                  <div class="folder-timer" :class="$style['timer']" @mouseenter="() => onTimerHover(folder.id)" @mouseleave="() => onTimerMouseLeave(folder.id)">
+                    <transition name="fade">
+                      <div v-show="tooltip.visible[folder.id]" class="tooltip" :class="$style['tooltip']">
+                        <div class="tooltip-wrap">
+                          <span>{{ tooltip.text }}</span>
+                        </div>
+                      </div>
+                    </transition>
+                    <span>{{ folder.timer.split(":")[0] }}</span>
+                    <span :class="$style['blink']">:</span>
+                    <span>{{ folder.timer.split(":")[1] }}</span>
+                  </div>
                   <InfoBtn />
                 </div>
               </div>
@@ -224,13 +232,6 @@ interface DialogProps {
 
 const props = defineProps<DialogProps>();
 
-// watch(
-//   () => props,
-//   (val) => {
-//     console.log(val);
-//   }
-// );
-
 const emit = defineEmits<{
   deleteItem: [itemId: string];
   deleteFolder: [folderId: string];
@@ -239,15 +240,26 @@ const emit = defineEmits<{
   "save-settings": [data: {}];
 }>();
 
+const tooltip = ref({
+  text: "",
+  visible: {},
+});
+
 const currentRoute = ref("folders");
 const currentFolder = ref();
 const settings = ref({
   city: "",
   contactType: "telegram",
-  userEmail: "",
-  emailCode: "",
+  // userEmail: "",
+  // emailCode: "",
 });
 const currentUrl = computed(() => location.hostname);
+
+storage.getItem("local:settings").then((data) => {
+  if (data?.region) {
+    settings.value.city = data?.region;
+  }
+});
 
 const setRoute = (route: string) => {
   currentRoute.value = route;
@@ -275,26 +287,28 @@ const onStartTracking = () => {
   console.log(`started tracking`);
 };
 
-const onBotConfirmed = () => {
-  console.log(`bot confirmed`);
-  setRoute("folders");
-  // - make api call
-  // - save service section
-  // - show result message
-};
+// const onBotConfirmed = () => {
+//   console.log(`bot confirmed`);
+//   setRoute("folders");
+// - make api call
+// - save service section
+// - show result message
+// };
 
-const onEmailConfirmed = () => {
-  console.log(`email confirmed`);
-  setRoute("folders");
-  // - make api call
-  // - save service section
-  // - show result message
-};
+// const onEmailConfirmed = () => {
+//   console.log(`email confirmed`);
+//   setRoute("folders");
+// - make api call
+// - save service section
+// - show result message
+// };
 
 const onAddHost = () => {};
 
-const onSaveSettings = () => {
+const onSaveSettings = async () => {
   emit("save-settings", { ...settings.value });
+
+  const _settings = await storage.getItem("local:settings");
 
   switch (settings.value.contactType) {
     case "telegram": {
@@ -302,19 +316,33 @@ const onSaveSettings = () => {
 
       setTimeout(() => {
         const link = document.createElement("a");
-        link.href = "https://web.telegram.org";
+        link.href = _settings?.contactUrl;
         link.setAttribute("target", "_blank");
         link.click();
       }, 1000);
       break;
     }
 
-    case "email": {
-      currentRoute.value = "confirm-email";
-      break;
-    }
+    // case "email": {
+    //   currentRoute.value = "confirm-email";
+    //   break;
+    // }
   }
+
+  setRoute("folders");
 };
+
+function onTimerHover(folderId: string) {
+  if (!tooltip.value.text) {
+    tooltip.value.text = props.localization["timer_tooltip"] ?? "Timer";
+  }
+
+  tooltip.value.visible[folderId] = true;
+}
+
+function onTimerMouseLeave(folderId: string) {
+  tooltip.value.visible[folderId] = false;
+}
 
 defineExpose({ setRoute });
 </script>
@@ -381,6 +409,7 @@ defineExpose({ setRoute });
   color: v-bind("theme.colors.greyText");
   font-weight: 300;
   font-size: v-bind("theme.fonts.regular");
+  position: relative;
 }
 
 .subtitle {
@@ -461,5 +490,50 @@ defineExpose({ setRoute });
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
+}
+
+.blink {
+  animation: blink 3s infinite;
+}
+
+.tooltip {
+  position: absolute;
+  // top: v-bind(tooltipPosition);
+  top: 20px;
+  right: 8px;
+  width: 150px;
+  background: #fff;
+  padding: 1rem;
+  border-radius: 6px;
+  z-index: 999;
+  box-shadow: 2px 2px 4px 2px #00000030;
+  color: #222;
+  pointer-events: none;
+
+  &::after {
+    background-color: #fff;
+    content: "";
+    position: absolute;
+    top: -0.25rem;
+    right: 10%;
+    transform: translateX(50%) rotate(45deg);
+    width: 0.5rem;
+    height: 0.5rem;
+  }
+}
+
+@keyframes blink {
+  0% {
+    opacity: 1;
+  }
+  49% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+  99% {
+    opacity: 0;
+  }
 }
 </style>

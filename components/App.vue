@@ -93,9 +93,9 @@ watch(dialogSettings, async (val) => {
     setDialogRoute("settings");
   }
 
-  if (val[tabId.value]) {
+  if (val && val[tabId.value]) {
     isDialogOpen.value = true;
-  } else if (val[tabId.value] === false) {
+  } else if (val && val[tabId.value] === false) {
     isDialogOpen.value = false;
   }
 });
@@ -154,17 +154,17 @@ async function onAddItem() {
   isButtonCheckbox.value = true;
 
   const result = await addItem();
-  console.log("🚀 ~ onSave ~ addItem:", result);
+  // console.log("🚀 ~ onSave ~ addItem:", result);
 }
 
 async function onDeleteItem(itemId: string) {
   const result = await deleteItem(itemId);
-  console.log("🚀 ~ onSave ~ deleteItem:", result);
+  // console.log("🚀 ~ onSave ~ deleteItem:", result);
 }
 
 async function onSaveSettings(_settings: object) {
   const result = await saveSettings(_settings);
-  console.log("🚀 ~ onSave ~ saveSettings:", result);
+  // console.log("🚀 ~ onSave ~ saveSettings:", result);
   settings.value = { ...settings.value, confirmed: true };
 }
 
@@ -215,11 +215,11 @@ function setDialogRoute(newRoute: string) {
 
 onMounted(async () => {
   init();
-  console.log(`mount`);
+  // console.log(`mount`);
 });
 
 onUnmounted(() => {
-  console.log(`update`);
+  // console.log(`update`);
 });
 </script>
 

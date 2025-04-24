@@ -160,7 +160,13 @@
                   <LinkBadge :count="folder.items.length" />
                 </div>
                 <div style="display: flex; gap: 4px">
-                  <div class="folder-timer" :class="$style['timer']" @mouseenter="() => onTimerHover(folder.id)" @mouseleave="() => onTimerMouseLeave(folder.id)">
+                  <div
+                    v-if="folder.timer"
+                    class="folder-timer"
+                    :class="$style['timer']"
+                    @mouseenter="() => onTimerHover(folder.id)"
+                    @mouseleave="() => onTimerMouseLeave(folder.id)"
+                  >
                     <transition name="fade">
                       <div v-show="tooltip.visible[folder.id]" class="tooltip" :class="$style['tooltip']">
                         <div class="tooltip-wrap">
@@ -168,9 +174,9 @@
                         </div>
                       </div>
                     </transition>
-                    <span>{{ folder.timer.split(":")[0] }}</span>
+                    <span>{{ folder.timer?.split(":")?.[0] }}</span>
                     <span :class="$style['blink']">:</span>
-                    <span>{{ folder.timer.split(":")[1] }}</span>
+                    <span>{{ folder.timer?.split(":")?.[1] }}</span>
                   </div>
                   <InfoBtn />
                 </div>

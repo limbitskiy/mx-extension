@@ -6,11 +6,12 @@ export default defineConfig({
   modules: ["@wxt-dev/module-vue"],
   manifest: {
     permissions: ["storage", "alarms", "tabs", "scripting", "activeTab"],
+    host_permissions: ["<all_urls>"],
     action: {},
     web_accessible_resources: [
       {
+        resources: ["content-injector.js"],
         matches: ["<all_urls>"],
-        resources: ["new-tab-script.js"],
       },
     ],
   },

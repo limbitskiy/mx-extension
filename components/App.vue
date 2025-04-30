@@ -126,14 +126,6 @@ const theme = shallowRef({
 const dialogRef = useTemplateRef("dialogRef");
 
 const isButtonCheckbox = ref(false);
-// const isButtonCheckbox = computed(() =>
-//   folders.value?.some((folder) =>
-//     folder.items.some((item) => {
-//       const itemUrl = new URL(item.url);
-//       return itemUrl.pathname === location.pathname;
-//     })
-//   )
-// );
 
 function onToggleDialog() {
   openDialog();
@@ -150,21 +142,16 @@ async function openDialog() {
 }
 
 async function onAddItem() {
-  // if (!isRegistered.value) return;
   isButtonCheckbox.value = true;
-
   const result = await addItem();
-  // console.log("🚀 ~ onSave ~ addItem:", result);
 }
 
 async function onDeleteItem(itemId: string) {
   const result = await deleteItem(itemId);
-  // console.log("🚀 ~ onSave ~ deleteItem:", result);
 }
 
 async function onSaveSettings(_settings: object) {
   const result = await saveSettings(_settings);
-  // console.log("🚀 ~ onSave ~ saveSettings:", result);
   settings.value = { ...settings.value, confirmed: true };
 }
 

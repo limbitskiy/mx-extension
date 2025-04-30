@@ -34,9 +34,17 @@
       </div>
     </div>
 
+    <!-- unknown host -->
+    <div v-if="!isMatch" :class="$style['unknown-host-cnt']">
+      <i>⚠️ {{ localization["unknown_route_title"] ?? "Unknown host" }}</i>
+      <b>{{ currentUrl }}</b>
+      <span v-html="localization['unknown_route_message'] ?? 'Press button to suggest adding current service to our service'" />
+      <div style="flex: 1"></div>
+      <button :class="$style['success-button']" @click="onAddHost">{{ localization["unknown_route_button"] ?? "Suggest" }}</button>
+    </div>
+
     <!-- content -->
     <div id="mx-content" :class="$style['content']">
-      <!-- <span>Current route: {{ currentRoute }}</span> -->
       <!-- settings -->
       <template v-if="currentRoute === 'settings'">
         <div :class="$style['subtitle']">{{ localization["settings"] ?? "Settings" }}</div>
@@ -57,21 +65,6 @@
                 Telegram
               </label>
 
-              <!-- <label style="color: grey; cursor: not-allowed">
-                <input v-model="settings.contactType" type="radio" value="email" :class="$style['radio']" disabled />
-                E-mail
-              </label>
-
-              <input
-                v-model="settings.userEmail"
-                type="text"
-                name="adress"
-                :class="$style['input']"
-                placeholder="mymail@mail.com"
-                style="font-size: 14px; cursor: not-allowed"
-                disabled
-              /> -->
-
               <label style="color: grey; cursor: not-allowed">
                 <input v-model="settings.contactType" type="radio" value="whatsapp" :class="$style['radio']" disabled />
                 WhatsApp
@@ -85,30 +78,6 @@
         </div>
       </template>
 
-      <!-- confirm telegram -->
-      <!-- <template v-else-if="currentRoute === 'confirm-telegram'">
-        <div :class="$style['subtitle']">{{ localization["confirm_telegram_title"] ?? "Confirm telegram" }}</div>
-        <div style="flex: 1; display: flex; flex-direction: column">
-          <span v-html="localization['confirm_telegram_message'] ?? 'Opening tg bot...'" />
-          <div style="flex: 1"></div>
-          <button :class="$style['success-button']" @click="onBotConfirmed">{{ localization["confirm_telegram_button"] ?? "I connected tg bot" }}</button>
-        </div>
-      </template> -->
-
-      <!-- confirm email -->
-      <!-- <template v-else-if="currentRoute === 'confirm-email'">
-        <div :class="$style['subtitle']">{{ localization["confirm_email_title"] ?? "Confirm E-mail" }}</div>
-        <div style="flex: 1; display: flex; flex-direction: column; gap: 0.5rem">
-          <span v-html="localization['confirm_email_message'] ?? 'We\'ve sent a message with a one-time code to your mailbox'" />
-          <label style="font-size: 14px; color: grey">
-            {{ localization["confirm_email_label"] ?? "Enter the code here:" }}
-            <input v-model="settings.emailCode" type="text" :class="$style['input']" />
-          </label>
-          <div style="flex: 1"></div>
-          <button :class="$style['success-button']" @click="onEmailConfirmed">{{ localization["confirm_email_button"] ?? "Confirm E-mail" }}</button>
-        </div>
-      </template> -->
-
       <!-- links -->
       <template v-else-if="currentRoute === 'folder'">
         <div :class="$style['subtitle']" style="display: flex; align-items: center; justify-content: space-between">
@@ -117,7 +86,11 @@
             <span>{{ localization["links_title"] ?? "Links" }}</span>
           </div>
           <div style="display: flex; gap: 4px">
-            <span :class="$style['timer']">{{ currentFolder.timer[0] + ":" + currentFolder.timer[1] }}</span>
+            <div :class="$style['timer']">
+              <span>{{ currentFolder.timer?.split(":")?.[0] }}</span>
+              <span :class="$style['blink']">:</span>
+              <span>{{ currentFolder.timer?.split(":")?.[1] }}</span>
+            </div>
             <InfoBtn />
           </div>
         </div>
@@ -140,15 +113,6 @@
 
       <!-- folders -->
       <template v-else-if="currentRoute === 'folders'">
-        <!-- no match -->
-        <!-- <template v-if="!isMatch">
-          <b>{{ localization["unknown_route_title"] ?? "Unknown host" }}</b>
-          <b>{{ currentUrl }}</b>
-          <span v-html="localization['unknown_route_message'] ?? 'Press button to suggest adding current service to our service'" />
-          <div style="flex: 1"></div>
-          <button :class="$style['success-button']" @click="onAddHost">{{ localization["unknown_route_button"] ?? "Suggest" }}</button>
-        </template> -->
-
         <!-- folders exist -->
         <template v-if="folders?.length">
           <div :class="$style['subtitle']">{{ localization["folders_title"] ?? "Folders" }}</div>
@@ -198,15 +162,6 @@
         </template>
       </template>
 
-      <!-- unknown host -->
-      <template v-else-if="currentRoute === 'unknown-host'">
-        <b>{{ localization["unknown_route_title"] ?? "Unknown host" }}</b>
-        <b>{{ currentUrl }}</b>
-        <span v-html="localization['unknown_route_message'] ?? 'Press button to suggest adding current service to our service'" />
-        <div style="flex: 1"></div>
-        <button :class="$style['success-button']" @click="onAddHost">{{ localization["unknown_route_button"] ?? "Suggest" }}</button>
-      </template>
-
       <!-- default route -->
       <template v-else
         ><span>{{ localization["404"] ?? "Oops. Wrong page" }}</span></template
@@ -216,12 +171,13 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, shallowRef } from "vue";
+import { ref } from "vue";
 import InfoBtn from "./ui/InfoBtn.vue";
 import BackBtn from "./ui/BackBtn.vue";
 import OptionsBtn from "./ui/OptionsBtn.vue";
 import LinkBadge from "./ui/LinkBadge.vue";
 import { computed } from "vue";
+import { addItem } from "@/api";
 
 interface ThemeConfig {
   colors: Record<string, string>;
@@ -256,9 +212,8 @@ const currentFolder = ref();
 const settings = ref({
   city: "",
   contactType: "telegram",
-  // userEmail: "",
-  // emailCode: "",
 });
+
 const currentUrl = computed(() => location.hostname);
 
 storage.getItem("local:settings").then((data) => {
@@ -289,27 +244,9 @@ const onClose = () => {
   emit("close");
 };
 
-const onStartTracking = () => {
-  console.log(`started tracking`);
+const onAddHost = async () => {
+  const result = await addItem();
 };
-
-// const onBotConfirmed = () => {
-//   console.log(`bot confirmed`);
-//   setRoute("folders");
-// - make api call
-// - save service section
-// - show result message
-// };
-
-// const onEmailConfirmed = () => {
-//   console.log(`email confirmed`);
-//   setRoute("folders");
-// - make api call
-// - save service section
-// - show result message
-// };
-
-const onAddHost = () => {};
 
 const onSaveSettings = async () => {
   emit("save-settings", { ...settings.value });
@@ -351,6 +288,8 @@ function onTimerMouseLeave(folderId: string) {
 }
 
 defineExpose({ setRoute });
+
+onMounted(async () => {});
 </script>
 
 <style lang="scss" module>
@@ -526,6 +465,15 @@ defineExpose({ setRoute });
     width: 0.5rem;
     height: 0.5rem;
   }
+}
+
+.unknown-host-cnt {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background-color: #efe9ce;
+  border-radius: 0.5rem;
+  padding: 0.5rem;
 }
 
 @keyframes blink {

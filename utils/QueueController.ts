@@ -20,7 +20,7 @@ export class QueueController {
 
   add(url: string) {
     this.queue.push(url);
-    console.log(`adding a url`);
+    // console.log(`adding a url`);
 
     if (!this.isBusy) {
       this.next();

@@ -5,7 +5,7 @@ export default defineUnlistedScript(() => {
   el.className = "ext_overlay";
   el.textContent = "Please do not close this tab if you want to use MxExtension - we use it for monitoring prices";
   el.style.paddingTop = "1rem";
-  el.style.position = "absolute";
+  el.style.position = "fixed";
   el.style.inset = 0;
   el.style.width = "100vw";
   el.style.height = "100dvh";
@@ -16,9 +16,11 @@ export default defineUnlistedScript(() => {
 
   document.body.appendChild(el);
 
+  const isExtensionAlive = () => typeof chrome !== "undefined" && !!chrome.runtime?.id;
+
   setTimeout(async () => {
     pageHtml = document.documentElement.outerHTML;
-    await sendMessage("sendParsedPage", { url: location.href, html: pageHtml });
+    isExtensionAlive() && (await sendMessage("sendParsedPage", { url: location.href, html: pageHtml }));
     pageHtml = "";
   }, 30000);
 });

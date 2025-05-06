@@ -53,6 +53,7 @@ import { useElementBounding } from "@vueuse/core";
 
 import { addItem, deleteItem, deleteFolder, saveSettings, getItems, getIcon, requestTabId } from "@/api/index";
 import useStorage from "@/composables/useStorage";
+import { useStorageItem } from "@/composables/useStorageItem";
 
 const props = defineProps<{}>();
 
@@ -64,11 +65,15 @@ interface AppSettings {
   confirmed: boolean;
 }
 
+// const folders = [];
+// const locale = {};
+// const isRegistered = true;
+
 // const { state: matches } = useStorage<string[]>("local:url_icon", []);
-const { state: settings } = useStorage<AppSettings>("local:settings");
-const { state: folders } = useStorage<Folder[]>("local:folders", []);
-const { state: locale } = useStorage<{ [key: string]: string }>("local:locale", {});
-const { state: dialogSettings } = useStorage<DialogSettings>("local:dialogSettings", {});
+const settings = useStorageItem<AppSettings>("settings");
+const folders = useStorageItem<Folder[]>("folders", []);
+const locale = useStorageItem<{ [key: string]: string }>("locale", {});
+const dialogSettings = useStorageItem<DialogSettings>("dialogSettings", {});
 
 const mainButton = useTemplateRef("mainButton");
 const tooltipRef = useTemplateRef("tooltipRef");
@@ -86,8 +91,10 @@ const tooltip = ref({
 const isDialogOpen = ref(false);
 const isMatch = ref(false);
 
+const isExtensionAlive = () => typeof chrome !== "undefined" && !!chrome.runtime?.id;
+
 watch(dialogSettings, async (val) => {
-  const _settings = (await storage.getItem("local:settings")) ?? {};
+  const _settings = (isExtensionAlive() && (await storage.getItem("local:settings"))) ?? {};
 
   if (!_settings?.confirmed) {
     setDialogRoute("settings");
@@ -132,57 +139,85 @@ function onToggleDialog() {
 }
 
 async function closeDialog() {
-  const _dialogSettings = (await storage.getItem("local:dialogSettings")) ?? {};
-  await storage.setItem("local:dialogSettings", { ..._dialogSettings, [tabId.value]: false });
+  try {
+    const _dialogSettings = (await storage.getItem("local:dialogSettings")) ?? {};
+    await storage.setItem("local:dialogSettings", { ..._dialogSettings, [tabId.value]: false });
+  } catch (error) {
+    console.error(error);
+  }
 }
 
 async function openDialog() {
-  const _dialogSettings = (await storage.getItem("local:dialogSettings")) ?? {};
-  await storage.setItem("local:dialogSettings", { ..._dialogSettings, [tabId.value]: true });
+  try {
+    const _dialogSettings = (await storage.getItem("local:dialogSettings")) ?? {};
+    await storage.setItem("local:dialogSettings", { ..._dialogSettings, [tabId.value]: true });
+  } catch (error) {
+    console.error(error);
+  }
 }
 
 async function onAddItem() {
-  isButtonCheckbox.value = true;
-  const result = await addItem();
+  try {
+    isButtonCheckbox.value = true;
+    const result = await addItem();
+  } catch (error) {
+    console.error(error);
+  }
 }
 
 async function onDeleteItem(itemId: string) {
-  const result = await deleteItem(itemId);
+  try {
+    const result = await deleteItem(itemId);
+  } catch (error) {
+    console.error(error);
+  }
 }
 
 async function onSaveSettings(_settings: object) {
-  const result = await saveSettings(_settings);
-  settings.value = { ...settings.value, confirmed: true };
+  try {
+    const result = await saveSettings(_settings);
+    settings.value = { ...settings.value, confirmed: true };
+  } catch (error) {
+    console.error(error);
+  }
 }
 
 async function onMoveItem() {}
 
 async function init() {
   // manually get settings because they could still be null in watcher
-  const _settings = await storage.getItem("local:settings");
-  const _matches = await storage.getItem("local:url_icon");
+  let _settings;
+  try {
+    _settings = await storage.getItem("local:settings");
+    const _matches = await storage.getItem("local:url_icon");
 
-  isMatch.value = _matches?.some((host) => new RegExp(host).test(location.href));
-
-  tabId.value = await requestTabId();
-  console.log("🚀 ~ init ~ tabId.value:", tabId.value);
+    isMatch.value = _matches?.some((host) => new RegExp(host).test(location.href));
+    tabId.value = await requestTabId();
+    console.log("🚀 ~ init ~ tabId.value:", tabId.value);
+  } catch (error) {
+    console.error(error);
+  }
 
   if (!_settings?.confirmed) {
     console.log(`first entry`);
     openDialog();
-  } else if (isMatch) {
+  } else if (isMatch.value) {
     console.log(`regular entry`);
-    await (<{ badge?: string; tooltip?: string }>getItems());
-  }
 
-  const { badge: _badge, tooltip: _tooltipText } = await (<{ badge?: string; tooltip?: string }>getIcon());
+    try {
+      await (<{ badge?: string; tooltip?: string }>getItems());
+      const { badge: _badge, tooltip: _tooltipText } = await (<{ badge?: string; tooltip?: string }>getIcon());
 
-  if (_badge) {
-    badge.value = _badge;
-  }
+      if (_badge) {
+        badge.value = _badge;
+      }
 
-  if (_tooltipText) {
-    tooltip.value.text = _tooltipText;
+      if (_tooltipText) {
+        tooltip.value.text = _tooltipText;
+      }
+    } catch (error) {
+      console.error(error);
+    }
   }
 }
 

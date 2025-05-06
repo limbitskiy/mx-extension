@@ -11,16 +11,13 @@ export default defineContentScript({
   cssInjectionMode: "ui",
 
   async main(ctx) {
-    await new Promise((res) => setTimeout(res, 3000));
-
-    if (!ctx.isValid) {
-      console.warn("Extension context invalidated, stopping script.");
-      return;
-    }
+    await new Promise((res) => setTimeout(res, 5000));
 
     const overlay = document.querySelector(".ext_overlay");
 
     if (overlay) return;
+
+    console.log(`no overlay`);
 
     mountMainComponent(ctx);
 
@@ -29,10 +26,20 @@ export default defineContentScript({
       app?.unmount();
       mountMainComponent(ctx);
     });
+
+    ctx.onInvalidated(() => {
+      console.warn("Extension context is invalid.");
+      app?.unmount();
+    });
   },
 });
 
 async function mountMainComponent(ctx: ContentScriptContext) {
+  if (!ctx.isValid) {
+    console.warn("Extension context invalidated, stopping script.");
+    return;
+  }
+
   const ui = await createShadowRootUi(ctx, {
     name: "example-ui",
     position: "inline",

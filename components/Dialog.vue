@@ -216,11 +216,17 @@ const settings = ref({
 
 const currentUrl = computed(() => location.hostname);
 
-storage.getItem("local:settings").then((data) => {
-  if (data?.region) {
-    settings.value.city = data?.region;
-  }
-});
+storage
+  .getItem("local:settings")
+  .then((data) => {
+    if (data?.region) {
+      settings.value.city = data?.region;
+    }
+  })
+  .catch((err) => {
+    console.log(`catched an error`);
+    console.error(err);
+  });
 
 const setRoute = (route: string) => {
   currentRoute.value = route;

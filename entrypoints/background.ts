@@ -13,8 +13,8 @@ interface DialogSettings {
 // check storage:
 // chrome.storage.local.get(null, (data) => console.log(data))
 const apiHost = "https://api-dev.tapsmart.io/main";
-const GET_TASKS_INTERVAL_IN_MINUTES = 0.5;
-const CHECK_TASKS_INTERVAL_IN_MINUTES = 1;
+const GET_TASKS_INTERVAL_IN_MINUTES = 4.5;
+const CHECK_TASKS_INTERVAL_IN_MINUTES = 5;
 let parserTab: Tabs.Tab;
 let parserTabWaitingForUpdate = false;
 let queueController = new QueueController(updateTab);

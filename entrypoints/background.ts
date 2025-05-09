@@ -32,8 +32,7 @@ export default defineBackground({
     browser.runtime.onInstalled.addListener(async (data) => {
       init();
 
-      createIfNoParserTab();
-      ``;
+      await createIfNoParserTab();
 
       setTimeout(async () => {
         await browser.scripting.executeScript({
@@ -59,6 +58,11 @@ export default defineBackground({
 
     browser.tabs.onRemoved.addListener(async (tabId) => {
       await closeCurrentTabDialog(tabId);
+
+      if (tabId === parserTab?.id) {
+        console.log(`parser tab closed`);
+        queueController.finish();
+      }
     });
 
     browser.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
@@ -147,6 +151,107 @@ async function getTasks() {
   }
 }
 
+async function handleNewTasks(newTasks: Task[]) {
+  const localTasks = (await storage.getItem<Task[]>("local:tasks")) ?? [];
+  const changedTasks: Task[] = [];
+
+  newTasks.forEach((newTask) => {
+    const localTask = localTasks.find((localTask) => localTask.id === newTask.id);
+
+    if (localTask) {
+      if (localTask.period != newTask.period) {
+        localTask.period = newTask.period;
+      }
+      changedTasks.push(localTask);
+    } else {
+      changedTasks.push({ ...newTask, updateIn: newTask.period });
+    }
+  });
+
+  await storage.setItem("local:tasks", changedTasks);
+}
+
+async function checkTasks() {
+  console.log(`checking tasks`);
+
+  const tasks = (await storage.getItem<Task[]>("local:tasks")) ?? [];
+  const updatedTasks: Task[] = [];
+
+  if (tasks?.length) {
+    tasks.forEach(async (task) => {
+      task.updateIn! -= CHECK_TASKS_INTERVAL_IN_MINUTES * 60000;
+
+      if (task.updateIn! <= 0) {
+        queueController.add(task.url);
+        task.updateIn = task.period;
+        updatedTasks.push(task);
+      }
+    });
+  }
+
+  await storage.setItem("local:tasks", updatedTasks);
+}
+
+async function updateTab(url: string) {
+  await createIfNoParserTab();
+
+  parserTabWaitingForUpdate = true;
+
+  await browser.tabs.update(parserTab.id, {
+    url,
+  });
+}
+
+async function injectScriptIntoTab() {
+  return new Promise((res) => {
+    setTimeout(async () => {
+      const parserTabExists = await tabExists(parserTab?.id);
+
+      if (parserTabExists) {
+        await browser.scripting.executeScript({
+          target: { tabId: parserTab.id },
+          files: ["/content-injector.js"],
+        });
+        res(true);
+      }
+    }, 1500);
+  });
+}
+
+async function closeCurrentTabDialog(tabId: number) {
+  const dialogSettings: DialogSettings | null = await storage.getItem("local:dialogSettings");
+
+  if (dialogSettings && tabId in dialogSettings) {
+    delete dialogSettings[tabId];
+    await storage.setItem("local:dialogSettings", dialogSettings);
+  }
+}
+
+async function createIfNoParserTab() {
+  const parserTabExists = await tabExists(parserTab?.id);
+
+  if (!parserTabExists) {
+    parserTab = await browser.tabs.create({
+      url: "https://google.com",
+      active: false,
+    });
+  }
+}
+
+async function tabExists(tabId: number): Promise<boolean> {
+  if (!tabId) return false;
+
+  try {
+    await browser.tabs.get(tabId);
+    return true;
+  } catch (e: any) {
+    if (e.message.includes("No tab with id")) {
+      return false;
+    }
+    throw e;
+  }
+}
+
 async function makeRequest(requestBody: RequestData): Promise<ResponseData | { error: unknown }> {
   try {
     const localService = await storage.getItem("local:service");
@@ -195,84 +300,5 @@ async function makeRequest(requestBody: RequestData): Promise<ResponseData | { e
   } catch (error) {
     console.error(error);
     return { error };
-  }
-}
-
-async function handleNewTasks(newTasks: Task[]) {
-  const localTasks = (await storage.getItem<Task[]>("local:tasks")) ?? [];
-  const changedTasks: Task[] = [];
-
-  newTasks.forEach((newTask) => {
-    const localTask = localTasks.find((localTask) => localTask.id === newTask.id);
-
-    if (localTask) {
-      if (localTask.period != newTask.period) {
-        localTask.period = newTask.period;
-      }
-      changedTasks.push(localTask);
-    } else {
-      changedTasks.push({ ...newTask, updateIn: newTask.period });
-    }
-  });
-
-  await storage.setItem("local:tasks", changedTasks);
-}
-
-async function checkTasks() {
-  const tasks = (await storage.getItem<Task[]>("local:tasks")) ?? [];
-  const updatedTasks: Task[] = [];
-
-  if (tasks?.length) {
-    tasks.forEach(async (task) => {
-      task.updateIn! -= CHECK_TASKS_INTERVAL_IN_MINUTES * 60000;
-
-      if (task.updateIn! < 0) {
-        queueController.add(task.url);
-        task.updateIn = task.period;
-        updatedTasks.push(task);
-      }
-    });
-  }
-
-  await storage.setItem("local:tasks", updatedTasks);
-}
-
-async function updateTab(url: string) {
-  createIfNoParserTab();
-
-  parserTabWaitingForUpdate = true;
-
-  await browser.tabs.update(parserTab.id, {
-    url,
-  });
-}
-
-async function injectScriptIntoTab() {
-  return new Promise((res) => {
-    setTimeout(async () => {
-      await browser.scripting.executeScript({
-        target: { tabId: parserTab.id },
-        files: ["/content-injector.js"],
-      });
-      res(true);
-    }, 1500);
-  });
-}
-
-async function closeCurrentTabDialog(tabId: number) {
-  const dialogSettings: DialogSettings | null = await storage.getItem("local:dialogSettings");
-
-  if (dialogSettings && tabId in dialogSettings) {
-    delete dialogSettings[tabId];
-    await storage.setItem("local:dialogSettings", dialogSettings);
-  }
-}
-
-async function createIfNoParserTab() {
-  if (!parserTab) {
-    parserTab = await browser.tabs.create({
-      url: "https://google.com",
-      active: false,
-    });
   }
 }

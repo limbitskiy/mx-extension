@@ -5,6 +5,7 @@ interface ProtocolMap {
   openHref(data: { href: string }): void;
   sendParsedPage(data: { url: string; html: string }): void;
   requestTabId(string: string): number | undefined;
+  reloadParserTab(): void;
 }
 
 export const { sendMessage, onMessage } = defineExtensionMessaging<ProtocolMap>();

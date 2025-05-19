@@ -16,7 +16,9 @@ const apiHost = "https://api-dev.tapsmart.io/main";
 const GET_TASKS_INTERVAL_IN_MINUTES = 4.5;
 const CHECK_TASKS_INTERVAL_IN_MINUTES = 5;
 let parserTab: Tabs.Tab;
-let parserTabWaitingForUpdate = false;
+let parserTabData = {
+  waitingForUpdate: false,
+};
 let queueController = new QueueController(updateTab);
 
 export default defineBackground({
@@ -66,13 +68,13 @@ export default defineBackground({
     });
 
     browser.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-      if (parserTabWaitingForUpdate && tabId === parserTab?.id && changeInfo.status === "complete") {
+      if (parserTabData.waitingForUpdate && tabId === parserTab?.id && changeInfo.status === "complete") {
         try {
           await injectScriptIntoTab();
         } catch (error) {
           console.error("Error injecting script:", error);
         } finally {
-          parserTabWaitingForUpdate = false;
+          parserTabData.waitingForUpdate = false;
         }
       }
 
@@ -95,9 +97,17 @@ export default defineBackground({
         data,
       };
 
+      if (!queueController.currentItem) return;
+
+      payload.data.id = queueController.currentItem.id;
+
       await makeRequest(payload);
 
       queueController.finish();
+    });
+
+    onMessage("reloadParserTab", async () => {
+      await browser.tabs.reload(parserTab.id, { bypassCache: true });
     });
   },
 });
@@ -182,23 +192,24 @@ async function checkTasks() {
       task.updateIn! -= CHECK_TASKS_INTERVAL_IN_MINUTES * 60000;
 
       if (task.updateIn! <= 0) {
-        queueController.add(task.url);
+        queueController.add(task);
         task.updateIn = task.period;
-        updatedTasks.push(task);
       }
+
+      updatedTasks.push(task);
     });
   }
 
   await storage.setItem("local:tasks", updatedTasks);
 }
 
-async function updateTab(url: string) {
+async function updateTab(item: { url: string }) {
   await createIfNoParserTab();
 
-  parserTabWaitingForUpdate = true;
+  parserTabData.waitingForUpdate = true;
 
   await browser.tabs.update(parserTab.id, {
-    url,
+    url: item.url,
   });
 }
 

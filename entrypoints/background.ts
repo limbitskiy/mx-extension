@@ -109,6 +109,15 @@ export default defineBackground({
     onMessage("reloadParserTab", async () => {
       await browser.tabs.reload(parserTab.id, { bypassCache: true });
     });
+
+    onMessage("register", async () => {
+      console.log(`user registered`);
+      const dialogSettings = (await storage.getItem("local:dialogSettings")) ?? {};
+      Object.keys(dialogSettings).forEach((key) => {
+        dialogSettings[key] = false;
+      });
+      await storage.setItem("local:dialogSettings", dialogSettings);
+    });
   },
 });
 

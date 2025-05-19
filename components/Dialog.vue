@@ -38,9 +38,15 @@
     <div v-if="!isMatch" :class="$style['unknown-host-cnt']">
       <i>⚠️ {{ localization["unknown_route_title"] ?? "Unknown host" }}</i>
       <b>{{ currentUrl }}</b>
-      <span v-html="localization['unknown_route_message'] ?? 'Press button to suggest adding current service to our service'" />
+      <span
+        v-html="
+          localization['unknown_route_message'] ?? 'Press button to suggest adding current service to our service'
+        "
+      />
       <div style="flex: 1"></div>
-      <button :class="$style['success-button']" @click="onAddHost">{{ localization["unknown_route_button"] ?? "Suggest" }}</button>
+      <button :class="$style['success-button']" @click="onAddHost">
+        {{ localization["unknown_route_button"] ?? "Suggest" }}
+      </button>
     </div>
 
     <!-- content -->
@@ -53,12 +59,29 @@
             <!-- city -->
             <label :class="$style['label']">
               {{ localization["settings_city_label"] ?? "Your city" }}
-              <input v-model="settings.city" type="text" name="city" :class="$style['input']" :placeholder="localization['settings_city_placeholder']" />
+              <input
+                v-model="settings.city"
+                type="text"
+                name="city"
+                :class="$style['input']"
+                :placeholder="localization['settings_city_placeholder']"
+              />
             </label>
 
             <!-- confirmation contact -->
-            <fieldset style="display: flex; flex-direction: column; gap: 0.2rem; margin-top: 0.5rem; border-radius: 8px; border: 1px solid #dfdfdf">
-              <legend style="font-size: 14px; color: grey">{{ localization["settings_notifications_label"] ?? "Your city" }}</legend>
+            <fieldset
+              style="
+                display: flex;
+                flex-direction: column;
+                gap: 0.2rem;
+                margin-top: 0.5rem;
+                border-radius: 8px;
+                border: 1px solid #dfdfdf;
+              "
+            >
+              <legend style="font-size: 14px; color: grey">
+                {{ localization["settings_notifications_label"] ?? "Your city" }}
+              </legend>
 
               <label>
                 <input v-model="settings.contactType" type="radio" value="telegram" :class="$style['radio']" />
@@ -73,7 +96,9 @@
 
             <div style="flex: 1"></div>
 
-            <button :class="$style['success-button']" @click.prevent="onSaveSettings">{{ localization["save"] ?? "Save" }}</button>
+            <button :class="$style['success-button']" @click.prevent="onSaveSettings">
+              {{ localization["save"] ?? "Save" }}
+            </button>
           </form>
         </div>
       </template>
@@ -105,7 +130,10 @@
               </div>
             </div>
             <div style="margin-top: 0.5rem">
-              <OptionsBtn :menuItems="[{ name: localization['delete'] ?? 'Delete', action: 'deleteItem' }]" @menu-click="(data) => onMenuClick(data, link)" />
+              <OptionsBtn
+                :menuItems="[{ name: localization['delete'] ?? 'Delete', action: 'deleteItem' }]"
+                @menu-click="(data) => onMenuClick(data, link)"
+              />
             </div>
           </div>
         </div>
@@ -117,7 +145,12 @@
         <template v-if="folders?.length">
           <div :class="$style['subtitle']">{{ localization["folders_title"] ?? "Folders" }}</div>
           <div style="display: flex; flex-direction: column; gap: 0.5rem">
-            <div v-for="folder in folders" :key="folder.id" :class="[$style['folder'], $style['hoverable']]" @click="() => onFolderClick(folder)">
+            <div
+              v-for="folder in folders"
+              :key="folder.id"
+              :class="[$style['folder'], $style['hoverable']]"
+              @click="() => onFolderClick(folder)"
+            >
               <div style="display: flex; justify-content: space-between; flex: 1; gap: 0.5rem">
                 <div style="display: flex; flex-direction: column; gap: 0.3rem">
                   <span :class="$style['two-line-clamp']">{{ folder.name }}</span>
@@ -146,7 +179,10 @@
                 </div>
               </div>
               <div style="margin-top: 0.5rem">
-                <OptionsBtn :menuItems="[{ name: localization['delete'] ?? 'Delete', action: 'deleteFolder' }]" @menu-click="(data) => onMenuClick(data, folder)" />
+                <OptionsBtn
+                  :menuItems="[{ name: localization['delete'] ?? 'Delete', action: 'deleteFolder' }]"
+                  @menu-click="(data) => onMenuClick(data, folder)"
+                />
               </div>
             </div>
           </div>
@@ -156,7 +192,12 @@
         <template v-else>
           <div :class="$style['no-folders']">
             <div style="display: flex; flex-direction: column; gap: 0.5rem">
-              <span v-html="localization['folders_no_folders'] ?? 'Nothing here yet <br /> Add items by pressing the Mx button on supported services'" />
+              <span
+                v-html="
+                  localization['folders_no_folders'] ??
+                  'Nothing here yet <br /> Add items by pressing the Mx button on supported services'
+                "
+              />
             </div>
           </div>
         </template>
@@ -271,12 +312,9 @@ const onSaveSettings = async () => {
       }, 1000);
       break;
     }
-
-    // case "email": {
-    //   currentRoute.value = "confirm-email";
-    //   break;
-    // }
   }
+
+  sendMessage("register", undefined);
 
   setRoute("folders");
 };

@@ -25,7 +25,13 @@
 
   <!-- button -->
   <transition name="slide-left" appear>
-    <div ref="mainButton" v-show="isMatch" :class="$style['mx-button-cnt']" @mouseenter="onButtonHover" @mouseleave="onButtonMouseLeave">
+    <div
+      ref="mainButton"
+      v-show="isMatch"
+      :class="$style['mx-button-cnt']"
+      @mouseenter="onButtonHover"
+      @mouseleave="onButtonMouseLeave"
+    >
       <div :class="[$style['mx-button'], $style['mx-button-toggle']]" @click="onToggleDialog">
         Mx
         <div v-if="badge" :class="$style['badge']">
@@ -33,11 +39,18 @@
         </div>
       </div>
       <div class="folders-btn" style="display: grid; place-items: center; flex: 1">
-        <div :class="[$style['mx-button'], $style['mx-button-save']]" @click="onToggleDialog">{{ locale?.["button_folders"] ?? "Folders" }}</div>
+        <div :class="[$style['mx-button'], $style['mx-button-save']]" @click="onToggleDialog">
+          {{ locale?.["button_folders"] ?? "Folders" }}
+        </div>
       </div>
       <div style="display: grid; place-items: center; flex: 1">
         <AnimatedTick v-if="isButtonCheckbox" style="width: 40px" />
-        <div v-else :class="[$style['mx-button'], $style['mx-button-save']]" :style="{ cursor: isRegistered ? 'pointer' : 'not-allowed' }" @click="onAddItem">
+        <div
+          v-else
+          :class="[$style['mx-button'], $style['mx-button-save']]"
+          :style="{ cursor: isRegistered ? 'pointer' : 'not-allowed' }"
+          @click="onAddItem"
+        >
           {{ locale?.["button_save"] ?? "Save" }}
         </div>
       </div>
@@ -96,8 +109,11 @@ const isExtensionAlive = () => typeof chrome !== "undefined" && !!chrome.runtime
 watch(dialogSettings, async (val) => {
   const _settings = (isExtensionAlive() && (await storage.getItem("local:settings"))) ?? {};
 
+  console.log("🚀 ~ watch ~ _settings:", _settings);
   if (!_settings?.confirmed) {
     setDialogRoute("settings");
+  } else {
+    setDialogRoute("folders");
   }
 
   if (val && val[tabId.value]) {

@@ -13,8 +13,8 @@ interface DialogSettings {
 // check storage:
 // chrome.storage.local.get(null, (data) => console.log(data))
 const apiHost = "https://api-dev.tapsmart.io/main";
-const GET_TASKS_INTERVAL_IN_MINUTES = 4.5;
-const CHECK_TASKS_INTERVAL_IN_MINUTES = 5;
+const GET_TASKS_INTERVAL_IN_MINUTES = 0.5;
+const CHECK_TASKS_INTERVAL_IN_MINUTES = 0.6;
 let parserTab: Tabs.Tab;
 let parserTabData = {
   waitingForUpdate: false,
@@ -78,7 +78,7 @@ export default defineBackground({
         }
       }
 
-      await closeCurrentTabDialog(tabId);
+      // await closeCurrentTabDialog(tabId);
     });
 
     onMessage("makeRequest", (message) => {
@@ -87,6 +87,10 @@ export default defineBackground({
 
     onMessage("requestTabId", (data) => {
       return data?.sender?.tab?.id;
+    });
+
+    onMessage("isParserTab", (data) => {
+      return data?.sender?.tab?.id === parserTab.id;
     });
 
     onMessage("sendParsedPage", async (page) => {
@@ -198,14 +202,14 @@ async function checkTasks() {
 
   if (tasks?.length) {
     tasks.forEach(async (task) => {
-      task.updateIn! -= CHECK_TASKS_INTERVAL_IN_MINUTES * 60000;
+      // task.updateIn! -= CHECK_TASKS_INTERVAL_IN_MINUTES * 60000;
 
-      if (task.updateIn! <= 0) {
-        queueController.add(task);
-        task.updateIn = task.period;
-      }
+      // if (task.updateIn! <= 0) {
+      queueController.add(task);
+      //   task.updateIn = task.period;
+      // }
 
-      updatedTasks.push(task);
+      // updatedTasks.push(task);
     });
   }
 
@@ -242,6 +246,8 @@ async function closeCurrentTabDialog(tabId: number) {
   const dialogSettings: DialogSettings | null = await storage.getItem("local:dialogSettings");
 
   if (dialogSettings && tabId in dialogSettings) {
+    console.log(`closing tab`);
+
     delete dialogSettings[tabId];
     await storage.setItem("local:dialogSettings", dialogSettings);
   }

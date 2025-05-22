@@ -2,6 +2,7 @@ import { ContentScriptContext } from "wxt/client";
 import App from "../components/App.vue";
 import { createApp } from "vue";
 import "./reset.css";
+import { isParserTab } from "@/api";
 
 let instance: ComponentPublicInstance;
 let app;
@@ -11,13 +12,15 @@ export default defineContentScript({
   cssInjectionMode: "ui",
 
   async main(ctx) {
-    await new Promise((res) => setTimeout(res, 5000));
+    await new Promise((res) => setTimeout(res, 3000));
 
-    const overlay = document.querySelector(".ext_overlay");
+    const isThisParserTab = await isParserTab();
 
-    if (overlay) return;
+    // const overlay = document.querySelector(".ext_overlay");
 
-    console.log(`no overlay`);
+    if (isThisParserTab) return;
+
+    // console.log(`no overlay`);
 
     mountMainComponent(ctx);
 

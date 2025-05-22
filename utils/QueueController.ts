@@ -3,7 +3,7 @@ interface QueueObject {
 }
 
 export class QueueController {
-  private queue: QueueObject[] = [];
+  private _queue: QueueObject[] = [];
   private isBusy: boolean = false;
   private parseFn: (queueObject: QueueObject) => void;
   private _currentItem: QueueObject | null = null;
@@ -14,11 +14,11 @@ export class QueueController {
 
   private next() {
     if (!this.isBusy) {
-      const nextItem = this.queue.shift();
+      const nextItem = this._queue.shift();
 
       if (nextItem) {
         console.log(`switching to next item in queue`);
-        console.log({ currentQueue: this.queue });
+        console.log({ currentQueue: this._queue });
 
         this._currentItem = nextItem;
         this.parseFn(nextItem);
@@ -28,13 +28,13 @@ export class QueueController {
   }
 
   add(queueObject: QueueObject) {
-    if (!this.queue.find((item) => item.id === queueObject.id)) {
-      this.queue.push(queueObject);
+    if (!this._queue.find((item) => item.id === queueObject.id)) {
+      this._queue.push(queueObject);
       console.log(`adding an item to queue`);
-      console.log({ currentQueue: this.queue });
+      console.log({ currentQueue: this._queue });
     } else {
       console.log(`item already in queue`);
-      console.log({ currentQueue: this.queue });
+      console.log({ currentQueue: this._queue });
     }
 
     if (!this.isBusy) {
@@ -53,5 +53,9 @@ export class QueueController {
 
   get currentItem() {
     return this._currentItem;
+  }
+
+  get queue() {
+    return this._queue;
   }
 }

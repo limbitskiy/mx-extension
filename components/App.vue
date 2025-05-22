@@ -109,7 +109,6 @@ const isExtensionAlive = () => typeof chrome !== "undefined" && !!chrome.runtime
 watch(dialogSettings, async (val) => {
   const _settings = (isExtensionAlive() && (await storage.getItem("local:settings"))) ?? {};
 
-  console.log("🚀 ~ watch ~ _settings:", _settings);
   if (!_settings?.confirmed) {
     setDialogRoute("settings");
   } else {
@@ -209,7 +208,13 @@ async function init() {
 
     isMatch.value = _matches?.some((host) => new RegExp(host).test(location.href));
     tabId.value = await requestTabId();
-    console.log("🚀 ~ init ~ tabId.value:", tabId.value);
+
+    // check if dialog is open
+    const _dialogSettings = await storage.getItem("local:dialogSettings");
+
+    if (_dialogSettings?.[tabId.value]) {
+      isDialogOpen.value = true;
+    }
   } catch (error) {
     console.error(error);
   }

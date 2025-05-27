@@ -26,7 +26,7 @@ export default defineBackground({
   main() {
     (browser.action ?? browser.browserAction).onClicked.addListener(async (tab) => {
       const dialogSettings = (await storage.getItem("local:dialogSettings")) ?? {};
-      dialogSettings[tab.id] = true;
+      dialogSettings[tab?.id] = true;
       await storage.setItem("local:dialogSettings", dialogSettings);
     });
 
@@ -38,7 +38,7 @@ export default defineBackground({
 
       setTimeout(async () => {
         await browser.scripting.executeScript({
-          target: { tabId: parserTab.id },
+          target: { tabId: parserTab?.id },
           files: ["/content-injector.js"],
         });
       }, 1000);
@@ -90,7 +90,7 @@ export default defineBackground({
     });
 
     onMessage("isParserTab", (data) => {
-      return data?.sender?.tab?.id === parserTab.id;
+      return data?.sender?.tab?.id === parserTab?.id;
     });
 
     onMessage("sendParsedPage", async (page) => {
@@ -103,7 +103,7 @@ export default defineBackground({
 
       if (!queueController.currentItem) return;
 
-      payload.data.id = queueController.currentItem.id;
+      payload.data.id = queueController.currentItem?.id;
 
       await makeRequest(payload);
 
@@ -111,7 +111,7 @@ export default defineBackground({
     });
 
     onMessage("reloadParserTab", async () => {
-      await browser.tabs.reload(parserTab.id, { bypassCache: true });
+      await browser.tabs.reload(parserTab?.id, { bypassCache: true });
     });
 
     onMessage("register", async () => {
@@ -222,7 +222,7 @@ async function updateTab(item: { url?: string }) {
 
     parserTabData.waitingForUpdate = true;
 
-    await browser.tabs.update(parserTab.id, {
+    await browser.tabs.update(parserTab?.id, {
       url: item.url,
     });
   } catch (error) {

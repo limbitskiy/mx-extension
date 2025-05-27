@@ -216,14 +216,19 @@ async function checkTasks() {
   await storage.setItem("local:tasks", updatedTasks);
 }
 
-async function updateTab(item: { url: string }) {
-  await createIfNoParserTab();
+async function updateTab(item: { url?: string }) {
+  try {
+    await createIfNoParserTab();
 
-  parserTabData.waitingForUpdate = true;
+    parserTabData.waitingForUpdate = true;
 
-  await browser.tabs.update(parserTab.id, {
-    url: item.url,
-  });
+    await browser.tabs.update(parserTab.id, {
+      url: item.url,
+    });
+  } catch (error) {
+    console.error(`Error in update function. Reloading parser tab`, error);
+    await browser.tabs.reload();
+  }
 }
 
 async function injectScriptIntoTab() {

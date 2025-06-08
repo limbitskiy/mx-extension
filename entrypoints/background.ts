@@ -238,7 +238,7 @@ async function injectScriptIntoTab() {
 
       if (parserTabExists) {
         await browser.scripting.executeScript({
-          target: { tabId: parserTab.id },
+          target: { tabId: parserTab?.id },
           files: ["/content-injector.js"],
         });
         res(true);

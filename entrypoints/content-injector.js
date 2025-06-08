@@ -1,11 +1,15 @@
+const isExtensionAlive = () => typeof chrome !== "undefined" && !!chrome.runtime?.id;
+
 export default defineUnlistedScript(() => {
   try {
     if (location.href === "https://www.google.com/") return;
 
     setTimeout(async () => {
-      const isExtensionAlive = () => typeof chrome !== "undefined" && !!chrome.runtime?.id;
       let pageHtml = document.documentElement.outerHTML;
-      isExtensionAlive() && (await sendMessage("sendParsedPage", { url: location.href, html: pageHtml }));
+
+      if (isExtensionAlive()) {
+        chrome.runtime.sendMessage({ type: "parsedPage", payload: { url: location.href, html: pageHtml } });
+      }
       pageHtml = "";
 
       const el = document.createElement("div");
@@ -25,6 +29,6 @@ export default defineUnlistedScript(() => {
     }, 30000);
   } catch (error) {
     console.error(error);
-    sendMessage("reloadParserTab");
+    chrome.runtime.sendMessage({ type: "error" });
   }
 });

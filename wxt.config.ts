@@ -2,15 +2,18 @@ import { defineConfig } from "wxt";
 
 // See https://wxt.dev/api/config.html
 export default defineConfig({
-  extensionApi: "chrome",
-  modules: ["@wxt-dev/module-vue"],
+  modules: ["@wxt-dev/module-react"],
   manifest: {
-    permissions: ["storage", "alarms", "tabs", "scripting", "activeTab"],
-    host_permissions: ["<all_urls>"],
+    name: "Price extension",
+    permissions: ["storage", "alarms", "activeTab"],
     action: {},
     web_accessible_resources: [
       {
         resources: ["content-injector.js"],
+        matches: ["<all_urls>"],
+      },
+      {
+        resources: ["htmlGetter.js"],
         matches: ["<all_urls>"],
       },
     ],

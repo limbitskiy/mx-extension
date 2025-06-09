@@ -27,15 +27,14 @@ export default defineContentScript({
     const parserTab = await isParserTab();
     const settings = await settingsStore.getValue();
 
+    if (settings.welcomePopup && !welcomePopup) {
+      mountWelcomePopup(ctx);
+    }
+
     if (parserTab) return;
 
     if (!toaster) {
       mountToaster(ctx);
-    }
-
-    if (settings.welcomePopup && !welcomePopup) {
-      mountWelcomePopup(ctx);
-      // return;
     }
 
     ctx.addEventListener(window, "wxt:locationchange", async ({ newUrl }) => {

@@ -18,7 +18,7 @@ const Modal: React.FC<ModalProps> = ({ onClose, children, title }) => {
         </div>
       )}
 
-      <h1 className="text-lg font-semibold leading-6">{title}</h1>
+      <h1 className="text-lg text-black font-semibold leading-6">{title}</h1>
 
       <div className="mt-4 flex flex-col gap-2">{children}</div>
     </div>

@@ -15,7 +15,7 @@ export default defineBackground(() => {
   parserTabIsOpen().then((isOpen) => {
     if (!isOpen) {
       queueController.finish();
-      createParserTab();
+      createParserTab({ active: true });
     }
   });
 

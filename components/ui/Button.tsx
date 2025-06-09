@@ -12,7 +12,9 @@ const Button: React.FC<ButtonProps> = ({ children, secondary, disabled, onClick 
     <button
       className={clsx(
         `w-full rounded cursor-pointer h-8 text-sm`,
-        secondary ? "border border-neutral-300 bg-[#454545] text-white" : "bg-green-500 text-white hover:bg-green-400"
+        secondary
+          ? "border border-neutral-300 bg-[#454545] text-white hover:bg-[#555555]"
+          : "bg-green-500 text-white hover:bg-green-400"
       )}
       disabled={disabled}
       onClick={onClick}

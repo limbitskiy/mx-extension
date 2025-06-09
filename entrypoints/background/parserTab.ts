@@ -1,9 +1,13 @@
 import { parserTabStore } from "@/store";
 
-export const createParserTab = async () => {
+interface CreateParserTabOptions {
+  active?: boolean;
+}
+
+export const createParserTab = async (options?: CreateParserTabOptions) => {
   const parserTab = await browser.tabs.create({
     url: "https://google.com",
-    active: false,
+    active: Boolean(options?.active),
   });
 
   await parserTabStore.setValue(parserTab);

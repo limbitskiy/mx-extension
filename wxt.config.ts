@@ -7,6 +7,7 @@ export default defineConfig({
     name: "Price extension",
     permissions: ["storage", "alarms", "activeTab", "scripting"],
     action: {},
+    host_permissions: ["<all_urls>"],
     web_accessible_resources: [
       {
         resources: ["content-injector.js"],

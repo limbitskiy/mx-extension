@@ -5,7 +5,7 @@ export default defineConfig({
   modules: ["@wxt-dev/module-react"],
   manifest: {
     name: "Price extension",
-    permissions: ["storage", "alarms", "activeTab"],
+    permissions: ["storage", "alarms", "activeTab", "scripting"],
     action: {},
     web_accessible_resources: [
       {

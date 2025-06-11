@@ -2,10 +2,19 @@ import { parserTabStore, settingsStore } from "@/store";
 import { initRequest, readTasks, addLink, makeRequest, updateTasks } from "./api";
 import { checkTasks } from "./tasks";
 import { QueueController } from "./QueueController";
-import { parserTabIsOpen, createParserTab, updateParserTabUrl, isParserTab, injectParserTabScript } from "./parserTab";
+import {
+  parserTabIsOpen,
+  createParserTab,
+  updateParserTabUrl,
+  isParserTab,
+  injectParserTabScript,
+  isParserTabActive,
+} from "./parserTab";
 
-const READ_TASKS_INTERVAL_IN_MINUTES = 4.5;
-const CHECK_TASKS_INTERVAL_IN_MINUTES = 5;
+const debugMode = import.meta.env.WXT_DEBUG;
+
+const READ_TASKS_INTERVAL_IN_MINUTES = debugMode ? 0.5 : 4.5;
+const CHECK_TASKS_INTERVAL_IN_MINUTES = debugMode ? 0.6 : 5;
 
 let queueController = new QueueController(updateTab);
 
@@ -69,6 +78,17 @@ export default defineBackground(() => {
         await injectParserTabScript();
       } catch (error) {
         console.error("Error injecting script:", error);
+        queueController.finish();
+
+        const isActive = await isParserTabActive();
+
+        if (isActive) {
+          console.log(`Opening new parser tab`);
+          createParserTab();
+        } else {
+          console.log(`Restarting parser tab`);
+          restartParserTab();
+        }
       }
     }
   });
@@ -191,6 +211,13 @@ export default defineBackground(() => {
     return true;
   });
 });
+
+async function restartParserTab() {
+  const parserTab = await parserTabStore.getValue();
+
+  browser.tabs.remove(parserTab?.id!);
+  createParserTab({ active: true });
+}
 
 const init = async () => {
   browser.alarms.create("read-tasks", {

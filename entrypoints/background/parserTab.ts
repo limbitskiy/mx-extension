@@ -55,3 +55,11 @@ export const isParserTab = async (tabId?: number) => {
   const parserTab = await parserTabStore.getValue();
   return tabId === parserTab?.id;
 };
+
+export const isParserTabActive = async (tabId?: number) => {
+  const parserTab = await parserTabStore.getValue();
+
+  const queryOptions = { active: true, lastFocusedWindow: true };
+  const [tab] = await chrome.tabs.query(queryOptions);
+  return tab.id === parserTab?.id;
+};

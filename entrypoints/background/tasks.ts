@@ -2,6 +2,8 @@ import { Task } from "@/types";
 import { taskStore } from "@/store";
 import { QueueController } from "./QueueController";
 
+const debugMode = import.meta.env.WXT_DEBUG;
+
 export const handleNewTasks = async (newTasks: Task[]) => {
   const localTasks = await taskStore.getValue();
   const changedTasks: Task[] = [];
@@ -30,16 +32,23 @@ export const checkTasks = async (intervalInMin: number, queueController: QueueCo
   const tasks = await taskStore.getValue();
   const updatedTasks: Task[] = [];
 
-  tasks.forEach(async (task) => {
-    task.updateIn! -= intervalInMin * 60000;
-
-    if (task.updateIn! <= 0) {
+  if (debugMode) {
+    tasks.forEach(async (task) => {
       queueController.add(task);
-      task.updateIn = task.period;
-    }
+      updatedTasks.push(task);
+    });
+  } else {
+    tasks.forEach(async (task) => {
+      task.updateIn! -= intervalInMin * 60000;
 
-    updatedTasks.push(task);
-  });
+      if (task.updateIn! <= 0) {
+        queueController.add(task);
+        task.updateIn = task.period;
+      }
+
+      updatedTasks.push(task);
+    });
+  }
 
   await taskStore.setValue(updatedTasks);
 

@@ -64,11 +64,10 @@ export const makeRequest = async (requestBody: RequestData): Promise<ResponseDat
 
     return data;
   } catch (error: unknown) {
-    console.error(error);
     if (error instanceof Error) {
       throw new Error(error?.message);
     } else {
-      throw new Error("Something went wrong");
+      throw new Error("Something went wrong in makeRequest");
     }
   }
 };

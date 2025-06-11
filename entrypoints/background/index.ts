@@ -34,11 +34,19 @@ export default defineBackground(() => {
       case "read-tasks": {
         console.log("reading tasks");
 
-        await readTasks();
+        try {
+          await readTasks();
+        } catch (error) {
+          console.error("Error while reading tasks: ", error);
+        }
         break;
       }
       case "check-tasks": {
-        await checkTasks(CHECK_TASKS_INTERVAL_IN_MINUTES, queueController);
+        try {
+          await checkTasks(CHECK_TASKS_INTERVAL_IN_MINUTES, queueController);
+        } catch (error) {
+          console.error("Error while checking tasks: ", error);
+        }
         break;
       }
     }
@@ -73,7 +81,7 @@ export default defineBackground(() => {
             const result = await isParserTab(sender.tab?.id);
             sendResponse(result);
           } catch (error) {
-            console.error(error);
+            console.error("Error trying to get parser tab: ", error);
             sendResponse(error);
           }
           break;
@@ -83,7 +91,7 @@ export default defineBackground(() => {
             const result = await makeRequest(message.payload);
             sendResponse(result);
           } catch (error) {
-            console.error(error);
+            console.error("Error executing makeRequest: ", error);
             sendResponse(error);
           }
           break;
@@ -97,7 +105,7 @@ export default defineBackground(() => {
               browser.tabs.sendMessage(tab.id, { type: "closeUIPopup" });
             }
           } catch (error) {
-            console.error(error);
+            console.error("Error while closing UI popup: ", error);
           } finally {
             return false;
           }
@@ -108,11 +116,10 @@ export default defineBackground(() => {
 
             const data = { ...message.payload, id: queueController.currentItem?.id };
             await updateTasks(data);
-
-            queueController.finish();
           } catch (error) {
-            console.error(error);
+            console.error("Error sending a parsed page: ", error);
           } finally {
+            queueController.finish();
             return false;
           }
         }
@@ -126,7 +133,7 @@ export default defineBackground(() => {
               files: ["/htmlGetter.js"],
             });
           } catch (error) {
-            console.error(error);
+            console.error("Error while executing htmlGetter script: ", error);
           } finally {
             return false;
           }
@@ -148,7 +155,9 @@ export default defineBackground(() => {
               });
             }
           } catch (error: unknown) {
-            console.error(error);
+            console.error("Error while adding link: ", error);
+
+            queueController.finish();
 
             if (tab?.id) {
               browser.tabs.sendMessage(tab.id, {
@@ -172,7 +181,7 @@ export default defineBackground(() => {
               sendResponse(tab.url);
             }
           } catch (error) {
-            console.error(error);
+            console.error("Error while getting active tab URL: ", error);
             sendResponse(error);
           }
           break;

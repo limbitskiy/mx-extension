@@ -20,7 +20,7 @@ export const createParserTab = async (options?: CreateParserTabOptions) => {
 
   const parserTab = await browser.tabs.create({
     windowId: newWindow.id,
-    url: browser.runtime.getURL("test.html"),
+    url: "https://google.com",
   });
 
   await parserTabStore.setValue(parserTab);

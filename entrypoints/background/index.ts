@@ -21,14 +21,16 @@ let queueController = new QueueController(updateTab);
 export default defineBackground(() => {
   // console.log(import.meta.env.WXT_API_URL, { id: browser.runtime.id });
 
-  parserTabIsOpen().then((isOpen) => {
-    if (!isOpen) {
-      queueController.finish();
-      createParserTab({ active: true });
-    }
-  });
+  // parserTabIsOpen().then((isOpen) => {
+  //   if (!isOpen) {
+  //     queueController.finish();
+  //   }
+  // });
+  createParserTab();
 
-  chrome.runtime.onInstalled.addListener(async () => {
+  chrome.runtime.onInstalled.addListener(async ({ reason }) => {
+    console.log({ reason });
+
     await init();
   });
 
@@ -84,10 +86,10 @@ export default defineBackground(() => {
 
         if (isActive) {
           console.log(`Opening new parser tab`);
-          createParserTab();
+          // createParserTab();
         } else {
           console.log(`Restarting parser tab`);
-          restartParserTab();
+          // restartParserTab();
         }
       }
     }
@@ -223,13 +225,10 @@ const init = async () => {
   browser.alarms.create("read-tasks", {
     periodInMinutes: READ_TASKS_INTERVAL_IN_MINUTES,
   });
-
   browser.alarms.create("check-tasks", {
     periodInMinutes: CHECK_TASKS_INTERVAL_IN_MINUTES,
   });
-
   const registered = await isRegistered();
-
   if (!registered) {
     console.log(`user is not registered`);
     await initRequest();

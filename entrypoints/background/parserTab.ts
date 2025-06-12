@@ -5,12 +5,31 @@ interface CreateParserTabOptions {
 }
 
 export const createParserTab = async (options?: CreateParserTabOptions) => {
+  // const parserTab = await browser.tabs.create({
+  //   url: "https://google.com",
+  //   active: Boolean(options?.active),
+  // });
+
+  // await parserTabStore.setValue(parserTab);
+
+  const newWindow = await browser.windows.create({
+    type: "popup",
+    state: "maximized",
+    // url: browser.runtime.getURL("test.html"),
+  });
+
   const parserTab = await browser.tabs.create({
-    url: "https://google.com",
-    active: Boolean(options?.active),
+    windowId: newWindow.id,
+    url: browser.runtime.getURL("test.html"),
   });
 
   await parserTabStore.setValue(parserTab);
+
+  // console.log(newWindow.tabs![0]);
+
+  // const parserTab = await browser.tabs.update(newWindow.tabs![0].id!, { autoDiscardable: false });
+
+  // await parserTabStore.setValue(parserTab.id!);
 };
 
 export const parserTabIsOpen = async () => {
